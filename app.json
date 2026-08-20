@@ -1,0 +1,46 @@
+{
+  "expo": {
+    "name": "Liked",
+    "slug": "liked",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "liked",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "icon": "./assets/icon.png",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "re.liked.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Liked utilise l'appareil photo pour prendre les photos de tes articles.",
+        "NSPhotoLibraryUsageDescription": "Liked accède à tes photos pour illustrer tes annonces.",
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "android": {
+      "package": "re.liked.app",
+      "edgeToEdgeEnabled": true,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": ["android.permission.CAMERA", "android.permission.READ_MEDIA_IMAGES", "android.permission.POST_NOTIFICATIONS"]
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash.png",
+          "imageWidth": 180,
+          "resizeMode": "contain",
+          "backgroundColor": "#0B3B3C"
+        }
+      ],
+      ["expo-image-picker", { "photosPermission": "Liked accède à tes photos pour illustrer tes annonces." }],
+      ["expo-notifications", { "icon": "./assets/notification-icon.png", "color": "#FF5E5B" }]
+    ],
+    "experiments": { "typedRoutes": false }
+  }
+}

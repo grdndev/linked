@@ -1,0 +1,9 @@
+{
+  "cli": { "version": ">= 12.0.0" },
+  "build": {
+    "development": { "developmentClient": true, "distribution": "internal" },
+    "preview": { "distribution": "internal", "env": { "EXPO_PUBLIC_API_DRIVER": "mock" } },
+    "production": { "autoIncrement": true, "env": { "EXPO_PUBLIC_API_DRIVER": "http" } }
+  },
+  "submit": { "production": {} }
+}
