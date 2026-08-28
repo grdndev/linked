@@ -80,6 +80,7 @@
     "platforms": [
       "ios",
       "android"
-    ]
+    ],
+    "privacy": "public"
   }
 }
