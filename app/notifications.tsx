@@ -6,6 +6,7 @@ import { Ecran, EnTete, Texte, Vide } from '@/components';
 import { depuis } from '@/lib/temps';
 import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { useShallow } from 'zustand/react/shallow';
 import type { CanalEvenement } from '@/types';
 
 const ICONES: Record<CanalEvenement, keyof typeof Ionicons.glyphMap> = {
@@ -21,7 +22,7 @@ const ICONES: Record<CanalEvenement, keyof typeof Ionicons.glyphMap> = {
 };
 
 export default function Notifications() {
-  const notifications = useLiked((e) => e.notifications.filter((n) => n.utilisateurId === e.sessionId));
+  const notifications = useLiked(useShallow((e) => e.notifications.filter((n) => n.utilisateurId === e.sessionId)));
   const { marquerNotificationLue, toutMarquerLu } = useLiked();
 
   return (

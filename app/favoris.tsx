@@ -4,14 +4,17 @@ import { router } from 'expo-router';
 import { CarteAnnonce, Ecran, EnTete, Texte, Vide } from '@/components';
 import { space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { useShallow } from 'zustand/react/shallow';
 
 const COLONNE = (Dimensions.get('window').width - space.lg * 2 - space.md) / 2;
 
 export default function Favoris() {
-  const annonces = useLiked((e) => {
-    const ids = e.sessionId ? e.favoris[e.sessionId] ?? [] : [];
-    return ids.map((id) => e.annonces.find((a) => a.id === id)).filter(Boolean);
-  });
+  const annonces = useLiked(
+    useShallow((e) => {
+      const ids = e.sessionId ? e.favoris[e.sessionId] ?? [] : [];
+      return ids.map((id) => e.annonces.find((a) => a.id === id)).filter(Boolean);
+    }),
+  );
 
   return (
     <Ecran>

@@ -6,9 +6,10 @@ import { Ecran, EnTete, Etiquette, Texte, Vide } from '@/components';
 import { depuis } from '@/lib/temps';
 import { colors, radius, space } from '@/theme';
 import { correspond, useLiked } from '@/store/liked';
+import { useShallow } from 'zustand/react/shallow';
 
 export default function RecherchesSauvegardees() {
-  const recherches = useLiked((e) => e.recherchesSauvegardees.filter((r) => r.utilisateurId === e.sessionId));
+  const recherches = useLiked(useShallow((e) => e.recherchesSauvegardees.filter((r) => r.utilisateurId === e.sessionId)));
   const annonces = useLiked((e) => e.annonces);
   const { supprimerRecherche, marquerRechercheVue } = useLiked();
 

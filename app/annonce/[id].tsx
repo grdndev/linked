@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Alert, Dimensions, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Dimensions, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -13,7 +13,9 @@ import { FORFAITS_PORT_CENTS, LIBELLES_GABARIT, euros, fraisProtectionCents } fr
 import { depuis } from '@/lib/temps';
 import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { useShallow } from 'zustand/react/shallow';
 import { useAnnonce, useMoi, useUtilisateur } from '@/store/selecteurs';
+import { alerter, confirmer } from '@/lib/dialogues';
 
 const LARGEUR = Dimensions.get('window').width;
 
@@ -31,19 +33,21 @@ export default function DetailAnnonce() {
   const vendeur = useUtilisateur(annonce?.vendeurId);
   const moi = useMoi();
   const { incrementerVue, ouvrirConversation, signaler, supprimerAnnonce } = useLiked();
-  const evaluations = useLiked((e) => e.evaluations.filter((v) => v.cibleId === annonce?.vendeurId).slice(0, 2));
+  const evaluations = useLiked(useShallow((e) => e.evaluations.filter((v) => v.cibleId === annonce?.vendeurId).slice(0, 2)));
   const insets = useSafeAreaInsets();
 
   const [photoActive, setPhotoActive] = useState(0);
   const [feuilleSignalement, setFeuilleSignalement] = useState(false);
   const vueComptee = useRef(false);
 
+  // Dépendre de l'identifiant et non de l'objet : incrementerVue remplace
+  // l'annonce dans le store, ce qui relancerait l'effet en boucle.
   useEffect(() => {
-    if (annonce && !vueComptee.current) {
+    if (id && !vueComptee.current) {
       vueComptee.current = true;
-      incrementerVue(annonce.id);
+      incrementerVue(id);
     }
-  }, [annonce, incrementerVue]);
+  }, [id, incrementerVue]);
 
   if (!annonce || !vendeur) {
     return (
@@ -193,12 +197,15 @@ export default function DetailAnnonce() {
             />
             <Bouton
               titre="Supprimer" ton="danger" style={{ flex: 1 }}
-              onPress={() =>
-                Alert.alert('Supprimer', 'Retirer définitivement cette annonce ?', [
-                  { text: 'Annuler', style: 'cancel' },
-                  { text: 'Supprimer', style: 'destructive', onPress: () => { supprimerAnnonce(annonce.id); router.back(); } },
-                ])
-              }
+              onPress={async () => {
+                const ok = await confirmer(
+                  'Supprimer',
+                  'Retirer définitivement cette annonce ?',
+                  'Supprimer',
+                  true,
+                );
+                if (ok) { supprimerAnnonce(annonce.id); router.back(); }
+              }}
             />
           </>
         ) : (
@@ -221,7 +228,7 @@ export default function DetailAnnonce() {
             onPress={() => {
               signaler('annonce', annonce.id, motif);
               setFeuilleSignalement(false);
-              Alert.alert('Merci', "Le signalement a été transmis à l'équipe Liked.");
+              alerter('Merci', "Le signalement a été transmis à l'équipe Liked.");
             }}
             style={styles.motif}
           >

@@ -5,9 +5,10 @@ import { Ecran, EnTete, Vide } from '@/components';
 import { CarteCommande } from '@/components/CarteCommande';
 import { space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { useShallow } from 'zustand/react/shallow';
 
 export default function MesAchats() {
-  const commandes = useLiked((e) => e.commandes.filter((c) => c.acheteurId === e.sessionId));
+  const commandes = useLiked(useShallow((e) => e.commandes.filter((c) => c.acheteurId === e.sessionId)));
 
   return (
     <Ecran>

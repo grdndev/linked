@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -14,6 +14,7 @@ import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useMoi } from '@/store/selecteurs';
 import type { EtatArticle, Gabarit } from '@/types';
+import { alerter } from '@/lib/dialogues';
 
 const MAX_PHOTOS = 8;
 
@@ -49,7 +50,7 @@ export default function Vendre() {
   const choisirPhotos = async () => {
     const { granted } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!granted) {
-      Alert.alert('Photos', "Autorise l'accès à tes photos pour illustrer ton annonce.");
+      alerter('Photos', "Autorise l'accès à tes photos pour illustrer ton annonce.");
       return;
     }
     const resultat = await ImagePicker.launchImageLibraryAsync({

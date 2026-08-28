@@ -1,4 +1,4 @@
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -6,8 +6,10 @@ import { Avatar, Bouton, Ecran, Etiquette, Etoiles, Groupe, Ligne, Texte, Vide }
 import { euros } from '@/lib/argent';
 import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { useShallow } from 'zustand/react/shallow';
 import { useMoi } from '@/store/selecteurs';
 import type { StatutKyc } from '@/types';
+import { confirmer } from '@/lib/dialogues';
 
 const LIBELLES_KYC: Record<StatutKyc, { libelle: string; ton: 'neutre' | 'succes' | 'alerte' | 'danger' }> = {
   non_requis: { libelle: 'Identité non requise', ton: 'neutre' },
@@ -20,9 +22,9 @@ const LIBELLES_KYC: Record<StatutKyc, { libelle: string; ton: 'neutre' | 'succes
 export default function Profil() {
   const moi = useMoi();
   const deconnecter = useLiked((e) => e.deconnecter);
-  const annonces = useLiked((e) => e.annonces.filter((a) => a.vendeurId === moi?.id && a.statut !== 'supprimee'));
-  const achats = useLiked((e) => e.commandes.filter((c) => c.acheteurId === moi?.id));
-  const ventes = useLiked((e) => e.commandes.filter((c) => c.vendeurId === moi?.id));
+  const annonces = useLiked(useShallow((e) => e.annonces.filter((a) => a.vendeurId === moi?.id && a.statut !== 'supprimee')));
+  const achats = useLiked(useShallow((e) => e.commandes.filter((c) => c.acheteurId === moi?.id)));
+  const ventes = useLiked(useShallow((e) => e.commandes.filter((c) => c.vendeurId === moi?.id)));
   const favoris = useLiked((e) => (moi ? (e.favoris[moi.id] ?? []).length : 0));
   const recherches = useLiked((e) => e.recherchesSauvegardees.filter((r) => r.utilisateurId === moi?.id).length);
 
@@ -93,12 +95,15 @@ export default function Profil() {
           titre="Se déconnecter"
           ton="contour"
           pleineLargeur
-          onPress={() =>
-            Alert.alert('Se déconnecter', 'Tu veux vraiment quitter ta session ?', [
-              { text: 'Annuler', style: 'cancel' },
-              { text: 'Se déconnecter', style: 'destructive', onPress: () => { deconnecter(); router.replace('/bienvenue'); } },
-            ])
-          }
+          onPress={async () => {
+            const ok = await confirmer(
+              'Se déconnecter',
+              'Tu veux vraiment quitter ta session ?',
+              'Se déconnecter',
+              true,
+            );
+            if (ok) { deconnecter(); router.replace('/bienvenue'); }
+          }}
         />
       </ScrollView>
     </Ecran>

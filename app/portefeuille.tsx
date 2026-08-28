@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -8,11 +8,13 @@ import { euros, parseEuros } from '@/lib/argent';
 import { dateCourte } from '@/lib/temps';
 import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { useShallow } from 'zustand/react/shallow';
 import { useMoi } from '@/store/selecteurs';
+import { alerter } from '@/lib/dialogues';
 
 export default function Portefeuille() {
   const moi = useMoi();
-  const mouvements = useLiked((e) => e.mouvements.filter((m) => m.utilisateurId === moi?.id));
+  const mouvements = useLiked(useShallow((e) => e.mouvements.filter((m) => m.utilisateurId === moi?.id)));
   const demanderVirement = useLiked((e) => e.demanderVirement);
   const [montant, setMontant] = useState('');
   const [erreur, setErreur] = useState<string>();
@@ -29,7 +31,7 @@ export default function Portefeuille() {
     if (!resultat.ok) return setErreur(resultat.erreur);
     setErreur(undefined);
     setMontant('');
-    Alert.alert('Virement demandé', 'Les fonds arriveront sur ton compte sous 1 à 3 jours ouvrés.');
+    alerter('Virement demandé', 'Les fonds arriveront sur ton compte sous 1 à 3 jours ouvrés.');
   };
 
   return (

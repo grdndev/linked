@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 
 import { Bouton, Ecran, EnTete, Texte } from '@/components';
 import { partagerFichier } from '@/lib/fichiers';
 import { colors, font, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { alerter } from '@/lib/dialogues';
 
 export default function ExportDac7() {
   const exportDac7 = useLiked((e) => e.exportDac7);
@@ -21,7 +22,7 @@ export default function ExportDac7() {
     const csv = exportDac7(annee);
     setApercu(csv);
     const resultat = await partagerFichier(`liked-dac7-${annee}.csv`, csv, 'text/csv');
-    if (!resultat.ok) Alert.alert('Export généré', resultat.emplacement ?? '');
+    if (!resultat.ok) alerter('Export généré', resultat.emplacement ?? '');
   };
 
   return (
@@ -41,7 +42,7 @@ export default function ExportDac7() {
         <Bouton titre="Générer le fichier annuel" pleineLargeur icone="download-outline" onPress={generer} />
         <Bouton
           titre="Envoyer les récapitulatifs individuels" ton="contour" pleineLargeur
-          onPress={() => Alert.alert('Récapitulatifs', `${aDeclarer.length} récapitulatif(s) mis en file d'envoi.`)}
+          onPress={() => alerter('Récapitulatifs', `${aDeclarer.length} récapitulatif(s) mis en file d'envoi.`)}
         />
 
         {apercu ? (

@@ -6,7 +6,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Bouton, Champ, Ecran, EnTete, Texte } from '@/components';
-import { LIBELLES_GABARIT, calculerPanier, euros } from '@/lib/argent';
+import { FORFAITS_PORT_CENTS, LIBELLES_GABARIT, calculerPanier, euros } from '@/lib/argent';
 import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useAnnonce, useMoi } from '@/store/selecteurs';
@@ -101,7 +101,9 @@ export default function Paiement() {
                 icone="cube-outline"
                 titre="Envoi Colissimo"
                 detail={`Gabarit ${LIBELLES_GABARIT[annonce.gabarit].nom.toLowerCase()} · suivi inclus`}
-                prix={euros(panier.fraisPortCents)}
+                // Toujours le forfait du gabarit : `panier` reflète le mode
+                // sélectionné et affichait 0 € tant que la main propre était choisie.
+                prix={euros(FORFAITS_PORT_CENTS[annonce.gabarit])}
               />
             ) : null}
           </View>

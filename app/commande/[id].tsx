@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -13,6 +13,7 @@ import { colors, font, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useAnnonce, useCommande, useMoi, useUtilisateur } from '@/store/selecteurs';
 import type { StatutCommande } from '@/types';
+import { alerter } from '@/lib/dialogues';
 
 const ETIQUETTES: Record<StatutCommande, { libelle: string; ton: 'neutre' | 'succes' | 'alerte' | 'danger' | 'action' }> = {
   paiement_en_attente: { libelle: 'Paiement en attente', ton: 'alerte' },
@@ -59,7 +60,7 @@ export default function DetailCommande() {
     setEnCours(false);
     if (!resultat.ok) return setErreur(resultat.erreur);
     setErreur(undefined);
-    Alert.alert('Remise confirmée 🎉', 'Les fonds viennent d\'être versés sur ton portefeuille.');
+    alerter('Remise confirmée 🎉', 'Les fonds viennent d\'être versés sur ton portefeuille.');
   };
 
   return (

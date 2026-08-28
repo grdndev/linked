@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { Bouton, Ecran, EnTete, Groupe, Ligne, Texte } from '@/components';
@@ -7,6 +7,7 @@ import { partagerFichier } from '@/lib/fichiers';
 import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useMoi } from '@/store/selecteurs';
+import { alerter, confirmer } from '@/lib/dialogues';
 
 export default function Confidentialite() {
   const moi = useMoi();
@@ -21,23 +22,19 @@ export default function Confidentialite() {
     const contenu = exporterMesDonnees();
     const resultat = await partagerFichier('liked-mes-donnees.json', contenu, 'application/json');
     setEnCours(false);
-    if (!resultat.ok) Alert.alert('Export prêt', `Fichier enregistré : ${resultat.emplacement}`);
+    if (!resultat.ok) alerter('Export prêt', `Fichier enregistré : ${resultat.emplacement}`);
   };
 
-  const supprimer = () =>
-    Alert.alert(
+  const supprimer = async () => {
+    const ok = await confirmer(
       'Supprimer mon compte',
       "Ton profil et tes annonces seront effacés. Les données de transaction sont conservées de façon " +
         'pseudonymisée au titre des obligations fiscales (DAC7) et de lutte contre le blanchiment.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Supprimer',
-          style: 'destructive',
-          onPress: async () => { await supprimerCompte(); router.replace('/bienvenue'); },
-        },
-      ],
+      'Supprimer',
+      true,
     );
+    if (ok) { await supprimerCompte(); router.replace('/bienvenue'); }
+  };
 
   return (
     <Ecran>

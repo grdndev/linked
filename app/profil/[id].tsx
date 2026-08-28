@@ -6,6 +6,7 @@ import { Avatar, CarteAnnonce, Ecran, EnTete, Etiquette, Etoiles, Texte, Vide } 
 import { dateCourte, depuis } from '@/lib/temps';
 import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { useShallow } from 'zustand/react/shallow';
 import { useUtilisateur } from '@/store/selecteurs';
 
 const COLONNE = (Dimensions.get('window').width - space.lg * 2 - space.md) / 2;
@@ -13,8 +14,8 @@ const COLONNE = (Dimensions.get('window').width - space.lg * 2 - space.md) / 2;
 export default function ProfilPublic() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const membre = useUtilisateur(id);
-  const annonces = useLiked((e) => e.annonces.filter((a) => a.vendeurId === id && a.statut === 'en_ligne'));
-  const evaluations = useLiked((e) => e.evaluations.filter((v) => v.cibleId === id));
+  const annonces = useLiked(useShallow((e) => e.annonces.filter((a) => a.vendeurId === id && a.statut === 'en_ligne')));
+  const evaluations = useLiked(useShallow((e) => e.evaluations.filter((v) => v.cibleId === id)));
   const utilisateurs = useLiked((e) => e.utilisateurs);
 
   if (!membre) {

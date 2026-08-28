@@ -1,4 +1,4 @@
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 
@@ -7,6 +7,7 @@ import { euros } from '@/lib/argent';
 import { depuis } from '@/lib/temps';
 import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { confirmer } from '@/lib/dialogues';
 
 export default function Moderation() {
   const signalements = useLiked((e) => e.signalements);
@@ -52,16 +53,15 @@ export default function Moderation() {
                       />
                       <Bouton
                         titre="Supprimer" taille="sm" ton="danger"
-                        onPress={() =>
-                          Alert.alert('Supprimer', 'Retirer définitivement cette annonce ?', [
-                            { text: 'Annuler', style: 'cancel' },
-                            {
-                              text: 'Supprimer',
-                              style: 'destructive',
-                              onPress: () => { modererAnnonce(annonce.id, 'supprimer', s.motif); traiterSignalement(s.id); },
-                            },
-                          ])
-                        }
+                        onPress={async () => {
+                          const ok = await confirmer(
+                            'Supprimer',
+                            'Retirer définitivement cette annonce ?',
+                            'Supprimer',
+                            true,
+                          );
+                          if (ok) { modererAnnonce(annonce.id, 'supprimer', s.motif); traiterSignalement(s.id); }
+                        }}
                       />
                     </>
                   ) : membre ? (

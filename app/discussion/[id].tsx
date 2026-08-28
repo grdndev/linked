@@ -1,6 +1,6 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View,
+  KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, TextInput, View,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -12,7 +12,9 @@ import { euros, parseEuros } from '@/lib/argent';
 import { heureCourte } from '@/lib/temps';
 import { colors, font, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { useShallow } from 'zustand/react/shallow';
 import { useAnnonce, useConversation, useMoi, useUtilisateur } from '@/store/selecteurs';
+import { confirmer } from '@/lib/dialogues';
 
 export default function Discussion() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,7 +24,7 @@ export default function Discussion() {
   const autre = useUtilisateur(
     conversation ? (conversation.acheteurId === moi?.id ? conversation.vendeurId : conversation.acheteurId) : undefined,
   );
-  const messages = useLiked((e) => e.messages.filter((m) => m.conversationId === id));
+  const messages = useLiked(useShallow((e) => e.messages.filter((m) => m.conversationId === id)));
   const { envoyerMessage, faireOffre, repondreOffre, marquerLu, signaler } = useLiked();
   const insets = useSafeAreaInsets();
 
@@ -34,9 +36,13 @@ export default function Discussion() {
 
   const jeSuisVendeur = conversation?.vendeurId === moi?.id;
 
-  useMemo(() => {
-    if (conversation && moi && !conversation.luPar.includes(moi.id)) marquerLu(conversation.id);
-  }, [conversation, moi, marquerLu]);
+  // Marquer lu est un effet de bord : le faire pendant le rendu relançait un
+  // cycle de rendu à chaque mise à jour du store.
+  const conversationId = conversation?.id;
+  const dejaLu = conversation && moi ? conversation.luPar.includes(moi.id) : true;
+  useEffect(() => {
+    if (conversationId && !dejaLu) marquerLu(conversationId);
+  }, [conversationId, dejaLu, marquerLu]);
 
   /** Dernière offre acceptée : permet d'acheter au prix négocié (§4.4). */
   const offreAcceptee = useMemo(
@@ -69,16 +75,15 @@ export default function Discussion() {
           <Pressable
             hitSlop={10}
             accessibilityLabel="Signaler"
-            onPress={() =>
-              Alert.alert('Signaler', `Signaler ${autre.pseudo} à l'équipe Liked ?`, [
-                { text: 'Annuler', style: 'cancel' },
-                {
-                  text: 'Signaler',
-                  style: 'destructive',
-                  onPress: () => { signaler('utilisateur', autre.id, 'Comportement suspect'); },
-                },
-              ])
-            }
+            onPress={async () => {
+              const ok = await confirmer(
+                'Signaler',
+                `Signaler ${autre.pseudo} à l'équipe Liked ?`,
+                'Signaler',
+                true,
+              );
+              if (ok) signaler('utilisateur', autre.id, 'Comportement suspect');
+            }}
           >
             <Ionicons name="flag-outline" size={20} color={colors.encre60} />
           </Pressable>
