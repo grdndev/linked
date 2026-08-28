@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors, font, radius, space } from '@/theme';
 import { Texte } from './Texte';
 
-type Ton = 'action' | 'encre' | 'contour' | 'discret' | 'danger';
+type Ton = 'action' | 'encre' | 'contour' | 'contourClair' | 'discret' | 'danger';
 type Taille = 'md' | 'lg' | 'sm';
 
 interface Props {
@@ -28,6 +28,8 @@ export function Bouton({
     action: { backgroundColor: colors.corail },
     encre: { backgroundColor: colors.encre },
     contour: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: colors.encre15 },
+    // Sur photo ou fond encre : bordure et texte blancs pour rester lisible.
+    contourClair: { backgroundColor: 'transparent', borderWidth: 1.5, borderColor: 'rgba(255,255,255,0.65)' },
     discret: { backgroundColor: colors.sableFonce },
     danger: { backgroundColor: colors.dangerDoux, borderWidth: 1.5, borderColor: colors.danger },
   };
@@ -35,6 +37,7 @@ export function Bouton({
     action: colors.blanc,
     encre: colors.blanc,
     contour: colors.encre,
+    contourClair: colors.blanc,
     discret: colors.encre,
     danger: colors.danger,
   };

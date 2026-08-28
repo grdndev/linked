@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
-import { File, Paths } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 import { router } from 'expo-router';
 
 import { Bouton, Ecran, EnTete, Groupe, Ligne, Texte } from '@/components';
+import { partagerFichier } from '@/lib/fichiers';
 import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useMoi } from '@/store/selecteurs';
@@ -20,12 +19,9 @@ export default function Confidentialite() {
   const exporter = async () => {
     setEnCours(true);
     const contenu = exporterMesDonnees();
-    const fichier = new File(Paths.cache, 'liked-mes-donnees.json');
-    fichier.create({ overwrite: true });
-    fichier.write(contenu);
+    const resultat = await partagerFichier('liked-mes-donnees.json', contenu, 'application/json');
     setEnCours(false);
-    if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fichier.uri);
-    else Alert.alert('Export prêt', `Fichier enregistré : ${fichier.uri}`);
+    if (!resultat.ok) Alert.alert('Export prêt', `Fichier enregistré : ${resultat.emplacement}`);
   };
 
   const supprimer = () =>

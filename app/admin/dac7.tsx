@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, View } from 'react-native';
-import { File, Paths } from 'expo-file-system';
-import * as Sharing from 'expo-sharing';
 
 import { Bouton, Ecran, EnTete, Texte } from '@/components';
+import { partagerFichier } from '@/lib/fichiers';
 import { colors, font, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 
@@ -21,11 +20,8 @@ export default function ExportDac7() {
   const generer = async () => {
     const csv = exportDac7(annee);
     setApercu(csv);
-    const fichier = new File(Paths.cache, `liked-dac7-${annee}.csv`);
-    fichier.create({ overwrite: true });
-    fichier.write(csv);
-    if (await Sharing.isAvailableAsync()) await Sharing.shareAsync(fichier.uri);
-    else Alert.alert('Export généré', fichier.uri);
+    const resultat = await partagerFichier(`liked-dac7-${annee}.csv`, csv, 'text/csv');
+    if (!resultat.ok) Alert.alert('Export généré', resultat.emplacement ?? '');
   };
 
   return (
