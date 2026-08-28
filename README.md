@@ -108,3 +108,10 @@ du point du « i » — le geste signature de la marque.
 - [Intégrations tierces](docs/INTEGRATIONS.md)
 - [Manuel du back-office](docs/BACK-OFFICE.md)
 - [Conformité RGPD et DAC7](docs/CONFORMITE.md)
+
+## Emplacement du projet
+
+Ne pas placer ce dépôt dans un dossier synchronisé iCloud (Bureau, Documents) :
+iCloud tente de téléverser `node_modules` en continu, ce qui sature les I/O et fait
+échouer `npm install`, `expo prebuild` et `xcodebuild` avec des erreurs de disque.
+Emplacement recommandé : `~/Developer/liked`.
