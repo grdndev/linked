@@ -9,6 +9,14 @@ import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import type { IssueLitige } from '@/types';
 
+const LIBELLES_MOTIF: Record<string, string> = {
+  non_recu: 'Article non reçu',
+  non_conforme: 'Article non conforme',
+  endommage: 'Article endommagé',
+  contrefacon: 'Soupçon de contrefaçon',
+  autre: 'Autre problème',
+};
+
 const ISSUES: { cle: IssueLitige; libelle: string; aide: string }[] = [
   { cle: 'remboursement_total', libelle: 'Remboursement total', aide: "L'acheteur récupère la totalité." },
   { cle: 'remboursement_partiel', libelle: 'Remboursement partiel', aide: 'Geste commercial, le reste va au vendeur.' },
@@ -48,7 +56,7 @@ export default function AdminLitiges() {
                     ton={l.statut === 'resolu' ? 'succes' : 'danger'}
                   />
                 </View>
-                <Texte variante="petit">{l.motif} · ouvert {depuis(l.ouvertLe)}</Texte>
+                <Texte variante="petit">{LIBELLES_MOTIF[l.motif] ?? l.motif} · ouvert {depuis(l.ouvertLe)}</Texte>
                 <Texte variante="corps" numberOfLines={3}>{l.description}</Texte>
                 {c ? <Texte variante="micro">Montant séquestré : {euros(c.totalCents)}</Texte> : null}
                 <View style={{ flexDirection: 'row', gap: space.sm }}>

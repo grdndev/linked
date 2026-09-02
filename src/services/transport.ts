@@ -1,5 +1,5 @@
 import { id } from '@/lib/ids';
-import type { AdresseLivraison, Gabarit } from '@/types';
+import type { AdresseLivraison, EtapeSuivi, Gabarit } from '@/types';
 
 /**
  * Génération d'étiquettes Colissimo prépayées et suivi (§4.6).
@@ -16,13 +16,6 @@ export interface Transporteur {
   suivre(numeroSuivi: string): Promise<EtapeSuivi[]>;
 }
 
-export interface EtapeSuivi {
-  le: string;
-  libelle: string;
-  lieu?: string;
-  livre: boolean;
-}
-
 export const transporteurMock: Transporteur = {
   async genererEtiquette({ commandeId }) {
     await pause(800);
@@ -33,18 +26,13 @@ export const transporteurMock: Transporteur = {
       etiquetteUrl: `https://api.liked.re/etiquettes/${commandeId}.pdf`,
     };
   },
-  async suivre(numeroSuivi) {
+  async suivre() {
     await pause(300);
-    return SUIVIS[numeroSuivi] ?? [];
+    // En production : appel à l'API de suivi La Poste. En local, les étapes
+    // sont conservées sur la commande elle-même.
+    return [];
   },
 };
-
-/** Journal de suivi simulé, alimenté par le backend local au fil de la commande. */
-export const SUIVIS: Record<string, EtapeSuivi[]> = {};
-
-export function ajouterEtapeSuivi(numeroSuivi: string, etape: EtapeSuivi) {
-  SUIVIS[numeroSuivi] = [...(SUIVIS[numeroSuivi] ?? []), etape];
-}
 
 export const transporteur: Transporteur = transporteurMock;
 

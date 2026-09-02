@@ -155,6 +155,8 @@ export interface Commande {
   codeRemise?: string;
   numeroSuivi?: string;
   etiquetteUrl?: string;
+  /** Étapes de suivi transporteur, conservées avec la commande. */
+  suivi?: EtapeSuivi[];
   livreeLe?: string;
   /** Date à partir de laquelle les fonds sont libérables (livraison + 48 h). */
   liberableLe?: string;
@@ -164,6 +166,13 @@ export interface Commande {
   evaluationAcheteurFaite: boolean;
   evaluationVendeurFaite: boolean;
   journal: EvenementCommande[];
+}
+
+export interface EtapeSuivi {
+  le: string;
+  libelle: string;
+  lieu?: string;
+  livre: boolean;
 }
 
 export interface EvenementCommande {

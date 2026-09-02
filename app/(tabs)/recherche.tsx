@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Dimensions, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Dimensions, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
@@ -7,7 +7,7 @@ import { Bouton, CarteAnnonce, Champ, Ecran, Feuille, Puce, Texte, Vide } from '
 import { LIBELLES_ETAT, UNIVERS } from '@/data/categories';
 import { COMMUNES } from '@/data/communes';
 import { euros, parseEuros } from '@/lib/argent';
-import { colors, radius, space } from '@/theme';
+import { colors, font, radius, space } from '@/theme';
 import { correspond, trier, useLiked } from '@/store/liked';
 import type { EtatArticle, FiltresRecherche } from '@/types';
 
@@ -66,13 +66,19 @@ export default function Recherche() {
       <View style={{ paddingHorizontal: space.lg, gap: space.md }}>
         <View style={styles.barre}>
           <Ionicons name="search" size={18} color={colors.encre60} />
-          <Champ
-            style={{ flex: 1 }}
+          <TextInput
             value={filtres.texte}
             onChangeText={(texte) => setFiltres((f) => ({ ...f, texte }))}
             placeholder="Robe, sneakers, Zara…"
+            placeholderTextColor={colors.encre40}
             returnKeyType="search"
+            style={styles.saisie}
           />
+          {filtres.texte ? (
+            <Pressable onPress={() => setFiltres((f) => ({ ...f, texte: '' }))} hitSlop={8} accessibilityLabel="Effacer">
+              <Ionicons name="close-circle" size={18} color={colors.encre40} />
+            </Pressable>
+          ) : null}
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm, paddingBottom: space.sm }}>
           <Puce
@@ -257,7 +263,12 @@ function Bloc({ titre, children }: { titre: string; children: React.ReactNode })
 }
 
 const styles = StyleSheet.create({
-  barre: { flexDirection: 'row', alignItems: 'center', gap: space.sm },
+  barre: {
+    flexDirection: 'row', alignItems: 'center', gap: space.sm,
+    backgroundColor: colors.blanc, borderRadius: radius.pill,
+    paddingHorizontal: space.lg, height: 46,
+  },
+  saisie: { flex: 1, fontFamily: font.regular, fontSize: 15, color: colors.encre, height: '100%' },
   ligneResultats: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingHorizontal: space.lg, paddingVertical: space.sm,

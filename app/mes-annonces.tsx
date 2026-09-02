@@ -4,12 +4,13 @@ import { router } from 'expo-router';
 import { CarteAnnonce, Ecran, EnTete, Vide } from '@/components';
 import { space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { useShallow } from 'zustand/react/shallow';
 
 const COLONNE = (Dimensions.get('window').width - space.lg * 2 - space.md) / 2;
 
 export default function MesAnnonces() {
-  const annonces = useLiked((e) =>
-    e.annonces.filter((a) => a.vendeurId === e.sessionId && a.statut !== 'supprimee'),
+  const annonces = useLiked(
+    useShallow((e) => e.annonces.filter((a) => a.vendeurId === e.sessionId && a.statut !== 'supprimee')),
   );
 
   return (

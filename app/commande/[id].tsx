@@ -8,7 +8,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Bouton, Champ, Ecran, EnTete, Etiquette, Texte } from '@/components';
 import { euros } from '@/lib/argent';
 import { compteARebours, dateCourte, heureCourte } from '@/lib/temps';
-import { SUIVIS } from '@/services/transport';
 import { colors, font, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useAnnonce, useCommande, useMoi, useUtilisateur } from '@/store/selecteurs';
@@ -34,7 +33,7 @@ export default function DetailCommande() {
   const moi = useMoi();
   const acheteur = useUtilisateur(commande?.acheteurId);
   const vendeur = useUtilisateur(commande?.vendeurId);
-  const { genererEtiquette, marquerExpedie, simulerLivraison, validerCodeRemise } = useLiked();
+  const { genererEtiquette, marquerExpedie, simulerLivraison, validerCodeRemise, confirmerReception } = useLiked();
 
   const [code, setCode] = useState('');
   const [erreur, setErreur] = useState<string>();
@@ -51,7 +50,7 @@ export default function DetailCommande() {
 
   const jeSuisAcheteur = commande.acheteurId === moi.id;
   const etiquette = ETIQUETTES[commande.statut];
-  const suivi = commande.numeroSuivi ? SUIVIS[commande.numeroSuivi] ?? [] : [];
+  const suivi = commande.suivi ?? [];
   const dejaEvalue = jeSuisAcheteur ? commande.evaluationAcheteurFaite : commande.evaluationVendeurFaite;
 
   const valider = async () => {
@@ -151,7 +150,7 @@ export default function DetailCommande() {
         ) : null}
 
         {/* — Colissimo : côté acheteur — */}
-        {commande.mode === 'colissimo' && jeSuisAcheteur && suivi.length > 0 ? (
+        {commande.mode === 'colissimo' && suivi.length > 0 ? (
           <View style={styles.bloc}>
             <Texte variante="section">Suivi du colis</Texte>
             {suivi.map((etape, i) => (
@@ -174,14 +173,34 @@ export default function DetailCommande() {
 
         {/* — Délai de libération — */}
         {commande.statut === 'livre' && commande.liberableLe ? (
-          <View style={styles.encartAlerte}>
-            <Ionicons name="time-outline" size={20} color={colors.alerte} />
-            <View style={{ flex: 1 }}>
-              <Texte variante="corps">Versement dans {compteARebours(commande.liberableLe)}</Texte>
-              <Texte variante="petit">
-                Les fonds sont versés au vendeur 48 h après la livraison, sauf litige ouvert d'ici là.
-              </Texte>
+          <View style={styles.blocLiberation}>
+            <View style={styles.ligneAlerte}>
+              <Ionicons name="time-outline" size={20} color={colors.alerte} />
+              <View style={{ flex: 1 }}>
+                <Texte variante="corps">Versement dans {compteARebours(commande.liberableLe)}</Texte>
+                <Texte variante="petit">
+                  Les fonds sont versés au vendeur 48 h après la livraison, sauf litige ouvert d'ici là.
+                </Texte>
+              </View>
             </View>
+            {jeSuisAcheteur ? (
+              <Bouton
+                titre="Tout est conforme — verser au vendeur"
+                pleineLargeur
+                icone="checkmark-circle-outline"
+                chargement={enCours}
+                onPress={async () => {
+                  setEnCours(true);
+                  const resultat = await confirmerReception(commande.id);
+                  setEnCours(false);
+                  if (resultat.ok) {
+                    alerter('Merci 🎉', 'Le vendeur vient d’être payé. Pense à laisser une évaluation.');
+                  } else {
+                    alerter('Impossible', resultat.erreur ?? '');
+                  }
+                }}
+              />
+            ) : null}
           </View>
         ) : null}
 
@@ -261,8 +280,9 @@ const styles = StyleSheet.create({
   },
   suiviLigne: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   separateur: { height: 1, backgroundColor: colors.encre15 },
-  encartAlerte: {
-    flexDirection: 'row', gap: space.md, alignItems: 'flex-start',
-    backgroundColor: colors.alerteDoux, borderRadius: radius.lg, padding: space.lg,
+  blocLiberation: {
+    backgroundColor: colors.alerteDoux, borderRadius: radius.lg,
+    padding: space.lg, gap: space.md,
   },
+  ligneAlerte: { flexDirection: 'row', gap: space.md, alignItems: 'flex-start' },
 });

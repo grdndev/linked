@@ -7,13 +7,13 @@ import {
   MESSAGES_SEED,
   UTILISATEURS_SEED,
 } from '@/data/seed';
-import { calculerPanier } from '@/lib/argent';
+import { calculerPanier, euros } from '@/lib/argent';
 import { AVERTISSEMENT_FILTRE, filtrerCoordonnees } from '@/lib/filtreCoordonnees';
 import { codeRemise as genererCode, id, reference } from '@/lib/ids';
 import { DELAI_LIBERATION_MS, DELAI_LITIGE_MS, maintenant } from '@/lib/temps';
 import { analytique } from '@/services/analytique';
 import { psp } from '@/services/psp';
-import { ajouterEtapeSuivi, transporteur } from '@/services/transport';
+import { transporteur } from '@/services/transport';
 import { verification } from '@/services/verification';
 import type {
   AdresseLivraison,
@@ -114,6 +114,8 @@ interface ActionsLiked {
   marquerExpedie: (commandeId: string) => void;
   simulerLivraison: (commandeId: string) => void;
   validerCodeRemise: (commandeId: string, code: string) => Promise<{ ok: boolean; erreur?: string }>;
+  /** L'acheteur confirme que tout est conforme : versement immédiat (§4.6). */
+  confirmerReception: (commandeId: string) => Promise<{ ok: boolean; erreur?: string }>;
   libererFondsSiEchu: () => Promise<void>;
   annulerCommande: (commandeId: string, motif: string) => Promise<void>;
 
@@ -192,6 +194,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
       id: id('n'), utilisateurId, canal, titre, corps, lien, le: maintenant(), lue: false,
     };
     set((e) => ({ notifications: [notification, ...e.notifications] }));
+    sauver();
   };
 
   const journaliser = (action: string, cible: string, detail?: string) => {
@@ -201,6 +204,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
       id: id('log'), adminId: admin.id, action, cible, le: maintenant(), detail,
     };
     set((e) => ({ journalAdmin: [entree, ...e.journalAdmin] }));
+    sauver();
   };
 
   const patcherUtilisateur = (utilisateurId: string, patch: Partial<Utilisateur>) => {
@@ -236,6 +240,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
       });
     }
     set((e) => ({ mouvements: [mouvement, ...e.mouvements] }));
+    sauver();
   };
 
   /** Versement au vendeur : crédite le portefeuille et met à jour les agrégats DAC7. */
@@ -597,7 +602,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
         ),
       });
       notifier(destinataire, 'offre_recue', 'Nouvelle offre 🏷️',
-        `${utilisateur.pseudo} propose ${(montantCents / 100).toFixed(2)} €`, `/discussion/${conversationId}`);
+        `${utilisateur.pseudo} propose ${euros(montantCents)}`, `/discussion/${conversationId}`);
       analytique.suivre('offre_envoyee', { montantCents });
     },
 
@@ -620,7 +625,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
         messages.push({
           id: id('m'), conversationId: message.conversationId, auteurId: 'systeme',
           texte: reponse === 'acceptee'
-            ? `Offre acceptée à ${(message.offre.montantCents / 100).toFixed(2)} €. L'acheteur peut régler à ce prix.`
+            ? `Offre acceptée à ${euros(message.offre.montantCents)}. L'acheteur peut régler à ce prix.`
             : 'Offre refusée.',
           envoyeLe: maintenant(), filtre: false, systeme: true,
         });
@@ -628,7 +633,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
       majEtat({ messages });
       notifier(message.auteurId, 'offre_recue',
         reponse === 'acceptee' ? 'Offre acceptée 🎉' : contrePropositionCents ? 'Contre-proposition reçue' : 'Offre refusée',
-        contrePropositionCents ? `${(contrePropositionCents / 100).toFixed(2)} €` : '',
+        contrePropositionCents ? euros(contrePropositionCents) : '',
         `/discussion/${message.conversationId}`);
     },
 
@@ -740,9 +745,17 @@ export const useLiked = create<EtatLiked>()((set, get) => {
         expediteurCommune: vendeur?.commune ?? 'Saint-Denis',
         destinataire: commande.adresseLivraison,
       });
-      ajouterEtapeSuivi(numeroSuivi, { le: maintenant(), libelle: 'Étiquette générée', livre: false });
-      patcherCommande(commandeId, { statut: 'etiquette_emise', numeroSuivi, etiquetteUrl },
-        'Étiquette Colissimo générée', numeroSuivi);
+      patcherCommande(
+        commandeId,
+        {
+          statut: 'etiquette_emise',
+          numeroSuivi,
+          etiquetteUrl,
+          suivi: [{ le: maintenant(), libelle: 'Étiquette générée', livre: false }],
+        },
+        'Étiquette Colissimo générée',
+        numeroSuivi,
+      );
       notifier(commande.vendeurId, 'etiquette_disponible', 'Étiquette prête 📦',
         'Imprime-la et dépose le colis en bureau de poste.', `/commande/${commandeId}`);
     },
@@ -750,8 +763,17 @@ export const useLiked = create<EtatLiked>()((set, get) => {
     marquerExpedie(commandeId) {
       const commande = get().commandes.find((c) => c.id === commandeId);
       if (!commande?.numeroSuivi) return;
-      ajouterEtapeSuivi(commande.numeroSuivi, { le: maintenant(), libelle: 'Colis pris en charge', lieu: 'Bureau de poste', livre: false });
-      patcherCommande(commandeId, { statut: 'expedie' }, 'Colis déposé');
+      patcherCommande(
+        commandeId,
+        {
+          statut: 'expedie',
+          suivi: [
+            ...(commande.suivi ?? []),
+            { le: maintenant(), libelle: 'Colis pris en charge', lieu: 'Bureau de poste', livre: false },
+          ],
+        },
+        'Colis déposé',
+      );
       notifier(commande.acheteurId, 'colis_livre', 'Colis expédié 🚚',
         `Suivi ${commande.numeroSuivi}`, `/commande/${commandeId}`);
     },
@@ -759,13 +781,24 @@ export const useLiked = create<EtatLiked>()((set, get) => {
     simulerLivraison(commandeId) {
       const commande = get().commandes.find((c) => c.id === commandeId);
       if (!commande) return;
-      if (commande.numeroSuivi) {
-        ajouterEtapeSuivi(commande.numeroSuivi, { le: maintenant(), libelle: 'Colis livré', lieu: commande.adresseLivraison?.ville, livre: true });
-      }
       const livreeLe = maintenant();
       // Fonds libérés 48 h après la livraison confirmée, sauf litige (§4.6).
       const liberableLe = new Date(Date.now() + DELAI_LIBERATION_MS).toISOString();
-      patcherCommande(commandeId, { statut: 'livre', livreeLe, liberableLe }, 'Livraison confirmée par le suivi');
+      patcherCommande(
+        commandeId,
+        {
+          statut: 'livre',
+          livreeLe,
+          liberableLe,
+          suivi: commande.numeroSuivi
+            ? [
+                ...(commande.suivi ?? []),
+                { le: livreeLe, libelle: 'Colis livré', lieu: commande.adresseLivraison?.ville, livre: true },
+              ]
+            : commande.suivi,
+        },
+        'Livraison confirmée par le suivi',
+      );
       notifier(commande.acheteurId, 'colis_livre', 'Colis livré 📬',
         'Tu as 48 h pour signaler un souci, sinon le vendeur est payé.', `/commande/${commandeId}`);
     },
@@ -781,6 +814,24 @@ export const useLiked = create<EtatLiked>()((set, get) => {
       }));
       // La remise en main propre déclenche immédiatement la libération des fonds (§4.6).
       await verserAuVendeur({ ...commande, statut: 'livre' });
+      return { ok: true };
+    },
+
+    async confirmerReception(commandeId) {
+      const utilisateur = moi();
+      const commande = get().commandes.find((c) => c.id === commandeId);
+      if (!utilisateur || !commande) return { ok: false, erreur: 'Commande introuvable.' };
+      if (commande.acheteurId !== utilisateur.id) {
+        return { ok: false, erreur: "Seul l'acheteur peut confirmer la réception." };
+      }
+      if (commande.statut !== 'livre') {
+        return { ok: false, erreur: "Cette commande n'est pas encore livrée." };
+      }
+      set((e) => ({
+        annonces: e.annonces.map((a) => (a.id === commande.annonceId ? { ...a, statut: 'vendue' as const } : a)),
+      }));
+      patcherCommande(commandeId, {}, 'Réception confirmée par l’acheteur');
+      await verserAuVendeur(commande);
       return { ok: true };
     },
 
