@@ -1,14 +1,15 @@
-import { Dimensions, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { CarteAnnonce, Ecran, EnTete, Vide } from '@/components';
 import { space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { useGrille } from '@/lib/grille';
 import { useShallow } from 'zustand/react/shallow';
 
-const COLONNE = (Dimensions.get('window').width - space.lg * 2 - space.md) / 2;
 
 export default function MesAnnonces() {
+  const { largeurColonne } = useGrille();
   const annonces = useLiked(
     useShallow((e) => e.annonces.filter((a) => a.vendeurId === e.sessionId && a.statut !== 'supprimee')),
   );
@@ -23,7 +24,7 @@ export default function MesAnnonces() {
             action="Vendre un article" onAction={() => router.push('/(tabs)/vendre')} />
         ) : (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
-            {annonces.map((a) => <CarteAnnonce key={a.id} annonce={a} largeur={COLONNE} />)}
+            {annonces.map((a) => <CarteAnnonce key={a.id} annonce={a} largeur={largeurColonne} />)}
           </View>
         )}
       </ScrollView>

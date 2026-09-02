@@ -1,14 +1,15 @@
-import { Dimensions, ScrollView, View } from 'react-native';
+import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 
 import { CarteAnnonce, Ecran, EnTete, Texte, Vide } from '@/components';
 import { space } from '@/theme';
 import { useLiked } from '@/store/liked';
+import { useGrille } from '@/lib/grille';
 import { useShallow } from 'zustand/react/shallow';
 
-const COLONNE = (Dimensions.get('window').width - space.lg * 2 - space.md) / 2;
 
 export default function Favoris() {
+  const { largeurColonne } = useGrille();
   const annonces = useLiked(
     useShallow((e) => {
       const ids = e.sessionId ? e.favoris[e.sessionId] ?? [] : [];
@@ -28,7 +29,7 @@ export default function Favoris() {
           />
         ) : (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
-            {annonces.map((a) => (a ? <CarteAnnonce key={a.id} annonce={a} largeur={COLONNE} /> : null))}
+            {annonces.map((a) => (a ? <CarteAnnonce key={a.id} annonce={a} largeur={largeurColonne} /> : null))}
           </View>
         )}
       </ScrollView>

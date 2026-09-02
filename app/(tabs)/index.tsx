@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Dimensions, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -10,11 +10,10 @@ import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useMoi, useNotificationsNonLues } from '@/store/selecteurs';
 import type { Annonce } from '@/types';
-
-const LARGEUR = Dimensions.get('window').width;
-const COLONNE = (LARGEUR - space.lg * 2 - space.md) / 2;
+import { useGrille } from '@/lib/grille';
 
 export default function Accueil() {
+  const { largeurColonne } = useGrille();
   const annonces = useLiked((e) => e.annonces);
   const favoris = useLiked((e) => (e.sessionId ? e.favoris[e.sessionId] ?? [] : []));
   const moi = useMoi();
@@ -99,7 +98,7 @@ export default function Accueil() {
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: space.lg, gap: space.md }}>
               {pres.map((a) => (
-                <CarteAnnonce key={a.id} annonce={a} largeur={COLONNE * 0.86} />
+                <CarteAnnonce key={a.id} annonce={a} largeur={largeurColonne * 0.86} />
               ))}
             </ScrollView>
           </View>
@@ -122,7 +121,7 @@ export default function Accueil() {
         ) : (
           <View style={styles.grille}>
             {fil.map((a) => (
-              <CarteAnnonce key={a.id} annonce={a} largeur={COLONNE} />
+              <CarteAnnonce key={a.id} annonce={a} largeur={largeurColonne} />
             ))}
           </View>
         )}

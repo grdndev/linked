@@ -1,4 +1,4 @@
-import { Dimensions, ScrollView, StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
 
@@ -8,10 +8,11 @@ import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useShallow } from 'zustand/react/shallow';
 import { useUtilisateur } from '@/store/selecteurs';
+import { useGrille } from '@/lib/grille';
 
-const COLONNE = (Dimensions.get('window').width - space.lg * 2 - space.md) / 2;
 
 export default function ProfilPublic() {
+  const { largeurColonne } = useGrille();
   const { id } = useLocalSearchParams<{ id: string }>();
   const membre = useUtilisateur(id);
   const annonces = useLiked(useShallow((e) => e.annonces.filter((a) => a.vendeurId === id && a.statut === 'en_ligne')));
@@ -60,7 +61,7 @@ export default function ProfilPublic() {
             <Vide icone="shirt-outline" titre="Aucune annonce en ligne" />
           ) : (
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
-              {annonces.map((a) => <CarteAnnonce key={a.id} annonce={a} largeur={COLONNE} />)}
+              {annonces.map((a) => <CarteAnnonce key={a.id} annonce={a} largeur={largeurColonne} />)}
             </View>
           )}
         </View>

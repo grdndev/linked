@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Dimensions, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 
@@ -10,9 +10,7 @@ import { euros, parseEuros } from '@/lib/argent';
 import { colors, font, radius, space } from '@/theme';
 import { correspond, trier, useLiked } from '@/store/liked';
 import type { EtatArticle, FiltresRecherche } from '@/types';
-
-const LARGEUR = Dimensions.get('window').width;
-const COLONNE = (LARGEUR - space.lg * 2 - space.md) / 2;
+import { useGrille } from '@/lib/grille';
 
 const TRIS: { cle: NonNullable<FiltresRecherche['tri']>; libelle: string }[] = [
   { cle: 'recent', libelle: 'Plus récent' },
@@ -22,6 +20,7 @@ const TRIS: { cle: NonNullable<FiltresRecherche['tri']>; libelle: string }[] = [
 ];
 
 export default function Recherche() {
+  const { largeurColonne } = useGrille();
   const params = useLocalSearchParams<{ universe?: string; texte?: string }>();
   const annonces = useLiked((e) => e.annonces);
   const sauvegarderRecherche = useLiked((e) => e.sauvegarderRecherche);
@@ -132,7 +131,7 @@ export default function Recherche() {
         ) : (
           <View style={styles.grille}>
             {resultats.map((a) => (
-              <CarteAnnonce key={a.id} annonce={a} largeur={COLONNE} />
+              <CarteAnnonce key={a.id} annonce={a} largeur={largeurColonne} />
             ))}
           </View>
         )}
