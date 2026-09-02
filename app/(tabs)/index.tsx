@@ -1,5 +1,5 @@
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { useCallback, useMemo, useState } from 'react';
+import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 
@@ -18,6 +18,17 @@ export default function Accueil() {
   const favoris = useLiked((e) => (e.sessionId ? e.favoris[e.sessionId] ?? [] : []));
   const moi = useMoi();
   const nonLues = useNotificationsNonLues();
+
+  const [rafraichit, setRafraichit] = useState(false);
+  const libererFondsSiEchu = useLiked((e) => e.libererFondsSiEchu);
+
+  /** Le fil se recalcule à chaque rendu ; on en profite pour libérer les fonds
+   *  arrivés à échéance, ce que ferait un appel API au rafraîchissement. */
+  const rafraichir = useCallback(async () => {
+    setRafraichit(true);
+    await libererFondsSiEchu();
+    setRafraichit(false);
+  }, [libererFondsSiEchu]);
 
   const enLigne = useMemo(
     () => annonces.filter((a) => a.statut === 'en_ligne'),
@@ -67,6 +78,14 @@ export default function Accueil() {
       <ScrollView
         contentContainerStyle={{ paddingBottom: space.xxxl }}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={rafraichit}
+            onRefresh={rafraichir}
+            tintColor={colors.corail}
+            colors={[colors.corail]}
+          />
+        }
       >
         <Pressable onPress={() => router.push('/(tabs)/recherche')} style={styles.barreRecherche}>
           <Ionicons name="search" size={18} color={colors.encre60} />

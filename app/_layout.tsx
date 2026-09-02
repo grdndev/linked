@@ -7,6 +7,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { colors } from '@/theme';
 import { useMarqueFonts } from '@/theme/fonts';
+import { enregistrerPourLesPush } from '@/services/notificationsPush';
 import { useLiked } from '@/store/liked';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -24,6 +25,13 @@ export default function DispositionRacine() {
   useEffect(() => {
     if (policesPretes && pret) SplashScreen.hideAsync().catch(() => {});
   }, [policesPretes, pret]);
+
+  // Autorisation et jeton de notification, à transmettre à l'API en production.
+  const sessionId = useLiked((e) => e.sessionId);
+  useEffect(() => {
+    if (!sessionId) return;
+    enregistrerPourLesPush().catch(() => {});
+  }, [sessionId]);
 
   // Libération automatique des fonds échus (livraison + 48 h, §4.6).
   useEffect(() => {

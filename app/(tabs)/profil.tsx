@@ -52,9 +52,14 @@ export default function Profil() {
             </View>
             <Etoiles note={moi.noteMoyenne} nombre={moi.nombreEvaluations} />
           </View>
-          <Pressable onPress={() => router.push(`/profil/${moi.id}`)} hitSlop={8} accessibilityLabel="Voir mon profil public">
-            <Ionicons name="open-outline" size={20} color={colors.encre60} />
-          </Pressable>
+          <View style={{ gap: space.md, alignItems: 'center' }}>
+            <Pressable onPress={() => router.push('/profil/modifier')} hitSlop={8} accessibilityLabel="Modifier mon profil">
+              <Ionicons name="create-outline" size={20} color={colors.encre60} />
+            </Pressable>
+            <Pressable onPress={() => router.push(`/profil/${moi.id}`)} hitSlop={8} accessibilityLabel="Voir mon profil public">
+              <Ionicons name="open-outline" size={20} color={colors.encre60} />
+            </Pressable>
+          </View>
         </View>
 
         <Pressable onPress={() => router.push('/portefeuille')} style={styles.portefeuille}>

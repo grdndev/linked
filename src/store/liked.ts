@@ -12,6 +12,7 @@ import { AVERTISSEMENT_FILTRE, filtrerCoordonnees } from '@/lib/filtreCoordonnee
 import { codeRemise as genererCode, id, reference } from '@/lib/ids';
 import { DELAI_LIBERATION_MS, DELAI_LITIGE_MS, maintenant } from '@/lib/temps';
 import { analytique } from '@/services/analytique';
+import { notifierLocalement } from '@/services/notificationsPush';
 import { psp } from '@/services/psp';
 import { transporteur } from '@/services/transport';
 import { verification } from '@/services/verification';
@@ -195,6 +196,10 @@ export const useLiked = create<EtatLiked>()((set, get) => {
     };
     set((e) => ({ notifications: [notification, ...e.notifications] }));
     sauver();
+    // Notification système, uniquement si le membre l'a autorisée pour ce canal.
+    if (utilisateur.preferences.push[canal]) {
+      notifierLocalement(titre, corps, lien).catch(() => {});
+    }
   };
 
   const journaliser = (action: string, cible: string, detail?: string) => {
