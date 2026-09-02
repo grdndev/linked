@@ -12,7 +12,7 @@ import { colors, font, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useAnnonce, useCommande, useMoi, useUtilisateur } from '@/store/selecteurs';
 import type { StatutCommande } from '@/types';
-import { alerter } from '@/lib/dialogues';
+import { alerter, confirmer } from '@/lib/dialogues';
 
 const ETIQUETTES: Record<StatutCommande, { libelle: string; ton: 'neutre' | 'succes' | 'alerte' | 'danger' | 'action' }> = {
   paiement_en_attente: { libelle: 'Paiement en attente', ton: 'alerte' },
@@ -33,7 +33,7 @@ export default function DetailCommande() {
   const moi = useMoi();
   const acheteur = useUtilisateur(commande?.acheteurId);
   const vendeur = useUtilisateur(commande?.vendeurId);
-  const { genererEtiquette, marquerExpedie, simulerLivraison, validerCodeRemise, confirmerReception } = useLiked();
+  const { genererEtiquette, marquerExpedie, simulerLivraison, validerCodeRemise, confirmerReception, annulerCommande } = useLiked();
 
   const [code, setCode] = useState('');
   const [erreur, setErreur] = useState<string>();
@@ -237,6 +237,35 @@ export default function DetailCommande() {
               router.push(`/discussion/${conversationId}`);
             }}
           />
+
+          {/* Annulation possible tant que rien n'est parti : l'article n'a été ni
+              remis en main propre, ni déposé chez le transporteur. */}
+          {['sequestre', 'etiquette_emise'].includes(commande.statut) ? (
+            <Bouton
+              titre="Annuler et rembourser"
+              ton="danger"
+              pleineLargeur
+              chargement={enCours}
+              onPress={async () => {
+                const ok = await confirmer(
+                  'Annuler la commande',
+                  jeSuisAcheteur
+                    ? "L'acheteur sera intégralement remboursé et l'article remis en vente. Confirmer ?"
+                    : "L'acheteur sera intégralement remboursé et ton article remis en vente. Confirmer ?",
+                  'Annuler la commande',
+                  true,
+                );
+                if (!ok) return;
+                setEnCours(true);
+                await annulerCommande(
+                  commande.id,
+                  jeSuisAcheteur ? "Annulation à la demande de l'acheteur" : 'Annulation à la demande du vendeur',
+                );
+                setEnCours(false);
+                alerter('Commande annulée', 'Le remboursement a été demandé au prestataire de paiement.');
+              }}
+            />
+          ) : null}
         </View>
 
         {/* — Journal — */}
