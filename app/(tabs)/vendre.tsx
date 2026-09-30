@@ -14,6 +14,8 @@ import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useMoi } from '@/store/selecteurs';
 import type { EtatArticle, Gabarit } from '@/types';
+import { BOOST_PLANS } from '@/lib/boost';
+import { MODE_DEMO } from '@/services/config';
 import { alerter } from '@/lib/dialogues';
 
 const MAX_PHOTOS = 8;
@@ -37,6 +39,7 @@ export default function Vendre() {
   const [communeRemise, setCommuneRemise] = useState(moi?.commune ?? 'Saint-Denis');
   const [envoi, setEnvoi] = useState(true);
   const [feuille, setFeuille] = useState<null | 'categorie' | 'commune' | 'gabarit'>(null);
+  const [boostPlan,setBoostPlan] = useState<string>('');
   const [erreur, setErreur] = useState<string>();
 
   const categories = universe ? UNIVERS.find((u) => u.cle === universe)!.categories : [];
@@ -106,14 +109,16 @@ export default function Vendre() {
       accepteEnvoi: envoi,
     });
     if (!annonceId) return;
+    const selectedBoost=boostPlan;
     reinitialiser();
-    router.push(`/annonce/${annonceId}`);
+    if(selectedBoost) router.push(`/booster/${annonceId}?plan=${selectedBoost}&publication=1`);
+    else router.push(`/annonce/${annonceId}`);
   };
 
   const reinitialiser = () => {
     setPhotos([]); setTitre(''); setDescription(''); setUniverse(undefined);
     setCategorie(undefined); setTaille(undefined); setMarque(''); setEtat(undefined);
-    setCouleur(undefined); setPrix(''); setGabarit('moyen'); setErreur(undefined);
+    setCouleur(undefined); setPrix(''); setGabarit('moyen'); setErreur(undefined); setBoostPlan('');
   };
 
   if (!moi) {
@@ -304,8 +309,16 @@ export default function Vendre() {
             />
           </Section>
 
+          {!MODE_DEMO && <Section titre="Booster dès la publication · facultatif">
+            <Texte variante="petit">Publie gratuitement, ou ajoute un boost pour apparaître dans « À la une ». Aucun abonnement.</Texte>
+            {[{id:'',jours:0,prixCents:0,nom:'Sans boost'},...BOOST_PLANS].map(p=><Pressable key={p.id} accessibilityRole="radio" accessibilityState={{checked:boostPlan===p.id}} accessibilityLabel={p.id?`Boost ${p.jours} jours, ${euros(p.prixCents)}`:'Sans boost, publication gratuite'} onPress={()=>setBoostPlan(p.id)} style={[styles.option,boostPlan===p.id && styles.optionActive]}>
+              <Ionicons name={boostPlan===p.id?'radio-button-on':'radio-button-off'} size={22} color={colors.corail}/>
+              <View style={{flex:1}}><Texte variante="section">{p.id?`${p.jours} jours à la une`:'Sans boost'}</Texte><Texte variante="petit">{p.id?'Paiement Stripe test après publication':'Publication gratuite'}</Texte></View><Texte variante="prix">{euros(p.prixCents)}</Texte>
+            </Pressable>)}
+            {boostPlan && <Texte variante="petit">Ton annonce sera publiée immédiatement. Le boost démarrera uniquement après le paiement confirmé. Si tu annules le paiement, l’annonce reste en ligne sans boost.</Texte>}
+          </Section>}
           {erreur ? <Texte variante="petit" couleur={colors.danger}>{erreur}</Texte> : null}
-          <Bouton titre="Publier mon annonce" pleineLargeur taille="lg" onPress={valider} />
+          <Bouton titre={boostPlan?"Publier et continuer vers le boost":"Publier mon annonce"} pleineLargeur taille="lg" onPress={valider} />
           <Texte variante="micro" centre>
             Publication immédiate. Liked peut retirer une annonce non conforme après vérification.
           </Texte>

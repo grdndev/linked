@@ -37,7 +37,10 @@ export function snapshot(state: EtatPersiste, userId: string | null) {
   return {
     utilisateurs: state.utilisateurs.map(u => u.id === userId ? u : publicProfile(u)),
     annonces: state.annonces.filter(a => admin || a.statut === 'en_ligne' || a.vendeurId === userId || commands.some(c => c.annonceId === a.id)),
-    conversations, messages: state.messages.filter(m => conversationIds.has(m.conversationId)),
+    conversations: conversations.map(c=>({...c,filtrageLeve:false})),
+    messages: state.messages.filter(m => conversationIds.has(m.conversationId)).map(m=>{
+      const filtered=filtrerCoordonnees(m.texte,true);return {...m,texte:filtered.texte,filtre:m.filtre || filtered.filtre};
+    }),
     commandes: commands.map(c => ({ ...c, codeRemise: c.acheteurId === userId ? c.codeRemise : undefined })),
     litiges: state.litiges.filter(l => orderIds.has(l.commandeId)), evaluations: state.evaluations,
     favoris: userId ? { [userId]: state.favoris[userId] ?? [] } : {},

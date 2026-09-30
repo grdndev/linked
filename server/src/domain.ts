@@ -98,7 +98,7 @@ export function command(s: EtatPersiste, userId: string, name: string, args: unk
       const c = getConversation(args[0]); const offer = name === 'faireOffre';
       if (offer) check(c.acheteurId === u.id && getListing(c.annonceId).statut === 'en_ligne');
       const amount = offer ? cents.parse(args[1]) : undefined;
-      const filtered = filtrerCoordonnees(offer ? `Offre : ${(amount! / 100).toFixed(2)} €` : text.parse(args[1]), !c.filtrageLeve);
+      const filtered = filtrerCoordonnees(offer ? `Offre : ${(amount! / 100).toFixed(2)} €` : text.parse(args[1]), true);
       s.messages.push({ id: uid(), conversationId: c.id, auteurId: u.id, ...filtered, envoyeLe: now(),
         offre: amount ? { montantCents: amount, statut: 'en_attente' } : undefined });
       c.luPar = [u.id]; c.derniereActiviteLe = now();

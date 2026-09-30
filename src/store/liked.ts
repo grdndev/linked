@@ -556,7 +556,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
       const utilisateur = moi();
       const conversation = get().conversations.find((c) => c.id === conversationId);
       if (!utilisateur || !conversation) return;
-      const { texte: nettoye, filtre } = filtrerCoordonnees(texte, !conversation.filtrageLeve);
+      const { texte: nettoye, filtre } = filtrerCoordonnees(texte, true);
       const message: Message = {
         id: id('m'), conversationId, auteurId: utilisateur.id, texte: nettoye,
         envoyeLe: maintenant(), filtre,
@@ -709,9 +709,9 @@ export const useLiked = create<EtatLiked>()((set, get) => {
       patcherCommande(commande.id, patch, 'Paiement encaissé, fonds séquestrés');
       set((e) => ({
         annonces: e.annonces.map((a) => (a.id === annonceId ? { ...a, statut: 'reservee' as const } : a)),
-        // Le filtrage des coordonnées est levé après paiement (§4.4).
+        // Les coordonnées restent masquées après paiement.
         conversations: e.conversations.map((c) =>
-          c.annonceId === annonceId && c.acheteurId === utilisateur.id ? { ...c, filtrageLeve: true } : c,
+          c.annonceId === annonceId && c.acheteurId === utilisateur.id ? { ...c, filtrageLeve: false } : c,
         ),
       }));
       sauver();

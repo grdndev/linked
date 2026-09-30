@@ -67,8 +67,8 @@ export async function webhook(db: Database, s: EtatPersiste, event: Stripe.Event
         c.journal.push({ le: now(), libelle: 'Paiement confirmé par Stripe' });
         db.sql.prepare('UPDATE payment_data SET payment_intent=?,charge_id=? WHERE order_id=?').run(pi.id,pi.latest_charge,c.id);
         let conv = s.conversations.find(v => v.annonceId === c.annonceId && v.acheteurId === c.acheteurId);
-        if (!conv) { conv = { id: uid(), annonceId: c.annonceId, acheteurId: c.acheteurId, vendeurId: c.vendeurId, derniereActiviteLe: now(), filtrageLeve: true, luPar: [] }; s.conversations.push(conv); }
-        conv.filtrageLeve = true;
+        if (!conv) { conv = { id: uid(), annonceId: c.annonceId, acheteurId: c.acheteurId, vendeurId: c.vendeurId, derniereActiviteLe: now(), filtrageLeve: false, luPar: [] }; s.conversations.push(conv); }
+        conv.filtrageLeve = false;
         queueOrderEmails(db,s,c,'achat');
         for (const id of [c.acheteurId,c.vendeurId]) s.notifications.unshift({ id: uid(), utilisateurId: id, canal: 'article_vendu', titre: 'Paiement confirmé', corps: 'Tu peux organiser la remise.', lien: `/commande/${c.id}`, le: now(), lue: false });
       }

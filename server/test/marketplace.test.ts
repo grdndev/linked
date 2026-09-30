@@ -39,7 +39,7 @@ test('frais en centimes : main propre 19,70 €, envoi 25,20 €',() => {
   assert.equal(calculerPanier(1800,'colissimo','moyen').totalCents,2520);
   assert.equal(calculerPanier(1,'main_propre','petit').fraisProtectionCents,80);
 });
-test('le filtrage masque les coordonnées uniquement avant paiement',() => {
+test('le filtre détecte téléphones et e-mails quand il est actif',() => {
   const raw = 'Contacte moi au 0692 12 34 56 ou moi@example.com';
   const filtered = filtrerCoordonnees(raw,true); assert.equal(filtered.filtre,true); assert.ok(!filtered.texte.includes('0692')); assert.ok(!filtered.texte.includes('@'));
   assert.equal(filtrerCoordonnees(raw,false).texte,raw);
@@ -197,4 +197,19 @@ test('une livraison sans activation explicite ou avec code postal hors Réunion 
   process.env.SHIPPING_DRIVER='simulated';await assert.rejects(f.db.run(s=>checkout(f.db,s,f.buyer.id,input,f.stripe,'https://api.test')));
   delete process.env.SHIPPING_DRIVER;input.adresse.codePostal='97410';await assert.rejects(f.db.run(s=>checkout(f.db,s,f.buyer.id,input,f.stripe,'https://api.test')));
   assert.equal(f.db.read().commandes.length,0);
+});
+
+test('coordonnées : masquées après paiement et dans les anciens messages renvoyés par API',()=>{
+  const f=fixture();const c=f.state.conversations.find(c=>c.id===f.conversationId)!;c.filtrageLeve=true;
+  command(f.state,f.buyer.id,'envoyerMessage',[c.id,'Écris à test@example.com ou au 06 92 12 34 56']);
+  assert.equal(f.state.messages.at(-1)!.filtre,true);
+  assert.ok(!f.state.messages.at(-1)!.texte.includes('example.com'));
+  f.state.messages.push({id:'legacy',conversationId:c.id,auteurId:f.seller.id,texte:'https://wa.me/33612345678',envoyeLe:new Date().toISOString(),filtre:false});
+  const data=snapshot(f.state,f.buyer.id);
+  assert.equal(data.messages.find(m=>m.id==='legacy')!.texte,'•••');
+  assert.equal(data.conversations[0].filtrageLeve,false);
+});
+test('coordonnées : e-mails obfusqués, liens, réseaux, téléphones dictés et caractères invisibles',()=>{
+  for(const input of ['test (arobase) exemple point fr','test [at] exemple [dot] com','contacte-moi sur https://t.me/exemple','wa.me/33612345678','instagram: mon_compte','@pseudo_test','+33 (0)6 12 34 56 78','zéro six neuf deux un deux trois quatre cinq six','０６９２１２３４５６','test@exa\u200bmple.com']) assert.equal(filtrerCoordonnees(input,true).filtre,true,input);
+  for(const input of ['Rendez-vous demain à 14 h place de la mairie.','La robe coûte 28,50 € et la taille est 38.','Commande LK-45E3E64B','Trois boutons et deux poches.']) assert.equal(filtrerCoordonnees(input,true).texte,input);
 });

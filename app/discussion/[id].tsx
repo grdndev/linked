@@ -8,6 +8,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Avatar, Bouton, Champ, Ecran, EnTete, Etiquette, Feuille, Texte } from '@/components';
+import { AVERTISSEMENT_FILTRE, filtrerCoordonnees } from '@/lib/filtreCoordonnees';
 import { euros, parseEuros } from '@/lib/argent';
 import { heureCourte } from '@/lib/temps';
 import { colors, font, radius, space } from '@/theme';
@@ -111,14 +112,14 @@ export default function Discussion() {
         ) : null}
       </Pressable>
 
-      {!conversation.filtrageLeve ? (
+      {(
         <View style={styles.avertissement}>
           <Ionicons name="shield-outline" size={14} color={colors.alerte} />
           <Texte variante="micro" style={{ flex: 1 }}>
-            Les coordonnées sont masquées tant que l'achat n'est pas payé.
+            {AVERTISSEMENT_FILTRE}
           </Texte>
         </View>
-      ) : null}
+      )}
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -134,7 +135,7 @@ export default function Discussion() {
             if (m.systeme) {
               return (
                 <View key={m.id} style={styles.systeme}>
-                  <Texte variante="micro" centre>{m.texte}</Texte>
+                  <Texte variante="micro" centre>{filtrerCoordonnees(m.texte,true).texte}</Texte>
                 </View>
               );
             }
@@ -168,7 +169,7 @@ export default function Discussion() {
             }
             return (
               <View key={m.id} style={[styles.bulle, aMoi ? styles.bulleMoi : styles.bulleAutre]}>
-                <Texte variante="corps" couleur={aMoi ? colors.blanc : colors.encre}>{m.texte}</Texte>
+                <Texte variante="corps" couleur={aMoi ? colors.blanc : colors.encre}>{filtrerCoordonnees(m.texte,true).texte}</Texte>
                 <Texte
                   style={{
                     fontFamily: font.regular, fontSize: 10,

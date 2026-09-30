@@ -13,7 +13,7 @@ réellement dans l'application.
 | 4 | `discussion/[id]` | « Proposer un prix » → 24 € ; le vendeur accepte |
 | 5 | `paiement/[id]` | Mode « main propre » (gratuit) ; total = 24 € + 2,00 € de protection |
 | 6 | `commande/[id]` | **Code à 4 chiffres** affiché en grand, copiable |
-| 7 | — | Le filtrage de la messagerie est levé : on peut convenir du rendez-vous |
+| 7 | — | Convenir du rendez-vous dans Liked : les coordonnées externes restent masquées, même après paiement |
 | 8 | Rencontre | L'acheteuse vérifie l'article **puis** donne son code |
 | 9 | `commande/[id]` (vendeur) | Le vendeur saisit le code → fonds versés immédiatement |
 | 10 | `evaluation/[id]` | Évaluations croisées, note sur 5 et commentaire |

@@ -14,8 +14,8 @@ import { colors, radius, space } from '@/theme';
 
 type History = {id:string;plan:string;days:number;amount:number;status:string;starts_at:string|null;ends_at:string|null};
 export default function Booster() {
-  const {id}=useLocalSearchParams<{id:string}>();const a=useAnnonce(id);const moi=useMoi();
-  const [plan,setPlan]=useState<string>('3j');const [history,setHistory]=useState<History[]>([]);
+  const {id,plan:initialPlan,publication}=useLocalSearchParams<{id:string;plan?:string;publication?:string}>();const a=useAnnonce(id);const moi=useMoi();
+  const [plan,setPlan]=useState<string>(initialPlan==='7j'?'7j':'3j');const [history,setHistory]=useState<History[]>([]);
   const [ready,setReady]=useState(false);const [error,setError]=useState('');
   const refresh=useCallback(async()=>{
     if(MODE_DEMO){setReady(true);return;}
@@ -34,6 +34,7 @@ export default function Booster() {
   return <Ecran><EnTete titre="Un peu plus de lumière" sousTitre="Booster mon article"/><ScrollView contentContainerStyle={styles.page}>
     <View style={styles.hero}><Ionicons name="sparkles-outline" size={32} color={colors.corail}/><Texte variante="titre" couleur={colors.blanc}>Ta pépite mérite{'\n'}d’être vue.</Texte><Texte couleur="#CBD8D7">Une place dans « À la une », pour donner plus de visibilité à ton article.</Texte><Etiquette libelle="Stripe test · aucun argent réel" ton="action"/></View>
     <View style={[styles.card,{flexDirection:'row',alignItems:'center'}]}><Image source={{uri:a.photos[0]}} style={{width:62,height:78,borderRadius:12}}/><View style={{flex:1,gap:4}}><Texte variante="section">{a.titre}</Texte><Texte>{euros(a.prixCents)}</Texte></View></View>
+    {publication==='1' && <View style={styles.card}><Texte variante="section">Ton annonce est en ligne.</Texte><Texte>Confirme le paiement pour activer le boost choisi. Tu peux aussi revenir à tes annonces sans payer : la publication reste gratuite.</Texte></View>}
     {error ? <View accessibilityRole="alert"><Texte couleur={colors.danger}>{error}</Texte></View>:null}
     {MODE_DEMO?<View style={styles.card}><Texte>Le boost payant est disponible dans la bêta connectée à Stripe test.</Texte></View>:!ready?<Texte>Vérification de ton boost…</Texte>:active?<View style={styles.card}><Etiquette libelle="Boost actif" ton="succes"/><Texte variante="soustitre">Ton article est à la une.</Texte><Texte>Jusqu’au {new Date(active.ends_at!).toLocaleString('fr-FR')}.</Texte>{a.statut!=='en_ligne' && <Texte>La mise en avant est masquée pendant que ton article n’est plus disponible. La date de fin reste inchangée.</Texte>}<Bouton titre="Voir À la une" icone="sparkles-outline" onPress={()=>router.push('/(tabs)')}/></View>:<>
       <View style={styles.card}><Texte variante="section">Choisis ton coup de pouce</Texte>{BOOST_PLANS.map(p=><Pressable key={p.id} accessibilityRole="radio" accessibilityState={{checked:selected.id===p.id,disabled:!!pending}} accessibilityLabel={`${p.jours} jours, ${euros(p.prixCents)}`} disabled={!!pending} onPress={()=>setPlan(p.id)} style={[styles.plan,selected.id===p.id && styles.selected]}><View style={{flex:1,gap:4}}><Texte variante="section">{p.jours} jours</Texte><Texte variante="petit">{p.nom}</Texte></View><Texte variante="prix">{euros(p.prixCents)}</Texte><Ionicons name={selected.id===p.id?'radio-button-on':'radio-button-off'} size={22} color={colors.corail}/></Pressable>)}</View>

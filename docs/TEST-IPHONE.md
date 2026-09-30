@@ -18,7 +18,7 @@ Dans Liked, choisir « Connexion » : le compte Kylian Test est déjà prêt ave
 - Achat de 30,20 € fictifs puis remboursement intégral confirmés (LK-45E3E64B).
 - Achat avec livraison de 35,70 € fictifs, webhook, préparation, expédition, livraison et transfert test de 28 € au vendeur confirmés (LK-656EA535).
 - Brevo confirme la livraison au testeur des e-mails de connexion, achat, remboursement, expédition, livraison et fin de transaction.
-- 32 tests automatisés passent ; contrôles TypeScript application/serveur et export web réussis.
+- 34 tests automatisés passent ; contrôles TypeScript application/serveur et export web réussis.
 - Livraison entièrement simulée, aucun affranchissement ou colis réel.
 
 ## Parcours à essayer
@@ -48,3 +48,11 @@ Pour essayer sans publier : Espace de test → Tester un boost d’article. Un a
 Le boost n’est pas un abonnement. Pas de renouvellement automatique ni de vente garantie. Un seul boost actif par article ; un paiement en cours se reprend sans créer un deuxième Checkout. Un article réservé, vendu, masqué ou supprimé sort des emplacements sponsorisés sans prolonger la période. S’il devient indisponible avant la confirmation du paiement, le serveur demande son remboursement. Les offres et montants sont fixés côté serveur dans src/lib/boost.ts. Ces tarifs sont uniquement ceux de la recette.
 
 Recette du boost effectuée le 30/09/2026 : achat Stripe test à 2,99 €, activation réelle par webhook pour trois jours (jusqu’au 03/10/2026 à 16:28, heure Réunion), affichage dans À la une et badge Sponsorisé vérifiés. L’expiration et l’absence de doublon sont couvertes par les tests automatisés.
+
+## Retour de recette de Kylian — 30/09/2026
+
+Le tunnel temporaire supprimé par Cloudflare a été remplacé ; le lien du site reste identique. Recharger la page pour recevoir la nouvelle configuration réseau. Comptes, commandes et photos conservés. Le Mac et le tunnel restent nécessaires ; un hébergement serveur permanent reste à déployer pour supprimer cette dépendance.
+
+Au dépôt d’une annonce : choisir Sans boost, 3 jours (2,99 €) ou 7 jours (5,99 €), puis publier. Le forfait choisi est repris sur l’écran de paiement du boost. Annuler le paiement conserve l’annonce publiée gratuitement.
+
+La messagerie masque les téléphones, e-mails, liens et identifiants sociaux avant et après paiement. Les anciens messages sont filtrés dans les réponses API. Les coordonnées détectées sont remplacées par des puces, pas seulement floutées visuellement. Cette détection couvre les formats courants et plusieurs obfuscations ; elle ne garantit pas de reconnaître toute formulation possible.
