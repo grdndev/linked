@@ -80,9 +80,9 @@ export default function NouveauLitige() {
         <Bouton
           titre="Envoyer ma demande" pleineLargeur
           desactive={!motif || description.trim().length < 15}
-          onPress={() => {
-            const litigeId = ouvrirLitige(commandeId!, motif!, description.trim(), photos);
-            router.replace(`/litige/${litigeId}`);
+          onPress={async () => {
+            const litigeId = await ouvrirLitige(commandeId!, motif!, description.trim(), photos);
+            if (litigeId) router.replace(`/litige/${litigeId}`);
           }}
         />
       </ScrollView>

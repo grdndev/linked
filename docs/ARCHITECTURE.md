@@ -1,113 +1,32 @@
-# Architecture technique
+# Architecture
 
-## Socle
+## Deux modes distincts
 
-| Élément | Choix | Pourquoi |
-| --- | --- | --- |
-| Framework | React Native 0.81 via Expo SDK 54 | Un seul code pour iOS et Android, mises à jour OTA possibles |
-| Navigation | expo-router 6 (routage par fichiers) | URL propres, liens profonds gratuits, structure lisible |
-| État | zustand + persistance AsyncStorage | Peu de cérémonie, sélecteurs fins, pas de re-rendus inutiles |
-| Typage | TypeScript strict | Le modèle de données est la spécification exécutable |
-| Images | expo-image | Cache disque, transitions, décodage hors du fil principal |
+`mock` charge les données fictives et la persistance locale existantes. Tous les écrans de recette sont disponibles. `http` remplace les actions du store par des requêtes serveur, avec une base initialement vide. Il ne recharge aucune donnée locale de démonstration. Une commande non implémentée retourne HTTP 501 ; aucun simulateur ne prend le relais.
 
-Le projet est délibérément **sans backend embarqué** : toute la logique métier vit dans
-`src/store/liked.ts`, derrière des interfaces qui correspondent une à une aux futurs
-appels d'API. Basculer sur l'API réelle ne change aucun écran.
+Le cache mobile reste en mémoire en mode HTTP. Le jeton opaque de session est conservé via SecureStore sur iOS/Android, et seulement en mémoire sur web. Le cache est rafraîchi au retour au premier plan et toutes les quinze secondes lorsque l’application est active. Il n’y a pas encore de WebSocket ni de pagination serveur.
 
-## Découpage
+## Serveur de bêta
 
-```
-app/                          Écrans (une route = un fichier)
-  _layout.tsx                 Polices, amorçage, minuteur de libération des fonds
-  (tabs)/                     Accueil · Recherche · Vendre · Messages · Profil
-  annonce/[id].tsx            Fiche article
-  paiement/[id].tsx           Tunnel d'achat
-  commande/[id].tsx           Suivi de commande, code de remise, étiquette
-  discussion/[id].tsx         Messagerie et offres
-  litige/                     Ouverture et espace d'échange à trois
-  admin/                      Back-office (accès réservé au rôle `admin`)
+Node 22.13+, Express 5, TypeScript, Zod. Une base SQLite en WAL stocke l’agrégat de marketplace en JSON, les sessions, les codes OTP hachés, les références Stripe, les événements traités et les photos appartenant à chaque utilisateur.
 
-src/
-  components/                 Système de composants, aucun style en dur ailleurs
-  data/                       Référentiels figés : communes, catégories, marques, jeu d'essai
-  lib/                        Fonctions pures et testables
-    argent.ts                 Frais de protection, forfaits de port, marge, formatage
-    filtreCoordonnees.ts      Masquage des coordonnées avant paiement
-    temps.ts                  Délais 48 h, formats relatifs français
-  services/                   Adaptateurs tiers, un fichier par prestataire
-  store/
-    liked.ts                  Entités + règles métier + persistance
-    selecteurs.ts             Accès mémoïsés depuis les écrans
-  theme/                      Palette, typographie Outfit, espacements, ombres
-  types/                      Modèle de données complet, DAC7 inclus
-```
+Les mutations passent par une file unique et une transaction `BEGIN IMMEDIATE`, y compris les appels prestataires liés. Cela évite les achats simultanés et les doubles transferts dans **une seule instance**. Ce choix privilégie une bêta facile à lancer, au prix de la concurrence et de la latence. Passer à des tables relationnelles paginées, une file durable de jobs et un modèle de réconciliation avant montée en charge.
 
-## Règles métier centrales
+Les appels externes ont des délais maximum et les transferts Stripe utilisent des clés d’idempotence. Une panne entre la création d’une session Checkout et le commit peut laisser une session orpheline chez Stripe : il faut ajouter une saga durable / outbox et une réconciliation avant paiement réel. Les écritures de fichier photo et SQLite ne sont pas atomiques ; une tâche de nettoyage des fichiers orphelins reste nécessaire.
 
-### Frais (`src/lib/argent.ts`)
+## Confidentialité et autorisation
 
-```
-protection = arrondi(prix × 5 %) + 0,80 €
-total acheteur = prix + protection + forfait de port éventuel
-revenu Liked = protection + (forfait de port − coût transporteur négocié)
-versement vendeur = prix de l'article
-```
+- Identité de session déduite d’un jeton HMAC côté serveur, jamais d’un identifiant envoyé dans le corps d’une action.
+- Profils publics construits par liste blanche ; pas d’e-mail, téléphone, NIF, IBAN, préférences ou solde des autres membres.
+- Commandes, conversations, messages et litiges limités aux participants ; modération réservée aux administrateurs.
+- Code de remise envoyé uniquement à l’acheteur ; validation réservée au vendeur ; cinq essais maximum.
+- Aucun endpoint public pour s’accorder un rôle admin, un statut KYC ou des fonds.
+- Images décodées et redimensionnées en WebP avec suppression EXIF/GPS. Upload authentifié, 10 Mo et 40 mégapixels maximum. Photos d’annonces publiques ; les preuves de litige nécessitent un stockage privé dédié avant production.
 
-Les forfaits de port par gabarit — 4,50 € / 5,50 € / 7,00 € — et les coûts d'achat
-correspondants sont des constantes uniques ; les ajuster après négociation avec La Poste
-ne demande qu'une seule modification.
+## Paiement
 
-### Cycle de vie d'une commande
+Le serveur calcule le panier à partir de l’annonce et d’une offre réellement acceptée. Il réserve l’article à la création de Checkout. Le webhook signé est la seule autorité pour confirmer le paiement. Après confirmation, un code à quatre chiffres est créé et la conversation est débloquée. Le transfert au vendeur s’effectue seulement après code valide et en absence de litige.
 
-```
-paiement_en_attente
-   └─ paiement accepté, fonds séquestrés ─────────► sequestre
-        ├─ main propre : code à 4 chiffres validé ► livre ──► finalisee (versement immédiat)
-        └─ Colissimo   : étiquette_emise ► expedie ► livre ──► finalisee (livraison + 48 h)
-                                                        └───► litige (versement suspendu)
-                                                                 └─► finalisee | remboursee
-```
+Les sessions Checkout expirent après trente minutes ; le webhook d’expiration remet l’annonce en ligne. Sans webhook fonctionnel, une réservation peut rester bloquée : surveiller et réconcilier avant ouverture publique.
 
-Le passage `livre → finalisee` est déclenché soit par la validation du code de remise,
-soit par un minuteur qui tourne dans `app/_layout.tsx` et appelle `libererFondsSiEchu()`.
-Un litige efface `liberableLe`, ce qui gèle définitivement la libération automatique.
-
-### Filtrage des coordonnées
-
-`filtrerCoordonnees()` masque e-mails, numéros de téléphone (formats réunionnais et
-métropolitains, y compris espacés ou écrits « nom (at) domaine point fr ») et identifiants
-de réseaux sociaux. Le filtre s'applique tant que `conversation.filtrageLeve` est faux ;
-le paiement le passe à vrai, ce qui libère l'échange pour organiser la remise.
-
-Un message masqué déclenche l'insertion d'un message système qui explique pourquoi —
-le filtrage silencieux est perçu comme un bug par les utilisateurs.
-
-## Performance
-
-- Les listes du catalogue rendent des cartes à hauteur fixe et des images `expo-image`
-  avec cache disque, ce qui évite les sauts de mise en page sur connexion lente.
-- Les sélecteurs zustand sont granulaires : modifier une conversation ne re-rend pas
-  le catalogue.
-- Le calcul du fil d'accueil personnalisé est mémoïsé sur les seules entrées qui le
-  concernent (annonces, favoris, commune du membre).
-
-En production, l'API doit servir des images déjà redimensionnées et en format moderne
-(AVIF/WebP), en trois tailles : vignette de grille, galerie, plein écran.
-
-## Sécurité
-
-- Aucun secret dans le bundle mobile : les clés Mangopay et La Poste vivent côté API.
-- Aucune donnée de carte ne transite par l'application ni par les serveurs Liked ;
-  la saisie se fait dans le composant hébergé du PSP.
-- `expo-secure-store` est provisionné pour le jeton de session (Keychain / Keystore).
-- Le cloisonnement des données est appliqué côté API : le mobile ne demande jamais
-  une ressource « au nom de » quelqu'un d'autre.
-
-## Ce qui reste à faire pour la production
-
-1. Implémenter le driver `http` des adaptateurs de `src/services/` contre l'API Liked.
-2. Brancher les webhooks du PSP (paiement confirmé, KYC validé, virement exécuté) et
-   ceux du transporteur (colis livré) — aujourd'hui simulés côté client.
-3. Remplacer la persistance AsyncStorage par un cache de requêtes API.
-4. Notifications push réelles (jetons Expo Push ou APNs/FCM directs).
-5. Suite de tests : les fonctions de `src/lib/` sont pures et se testent sans rendu.
+Le champ historique `sequestre` signifie ici « paiement confirmé, transfert en attente ». Stripe Connect n’est pas présenté comme un prestataire de séquestre.

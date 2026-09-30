@@ -1,3 +1,4 @@
+import { MODE_DEMO } from '@/services/config';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
@@ -146,7 +147,7 @@ export default function Paiement() {
             <View style={{ flex: 1 }}>
               <Texte variante="corps">Carte bancaire</Texte>
               <Texte variante="petit">
-                Paiement traité par notre prestataire agréé. Liked ne conserve aucune donnée de carte.
+                {MODE_DEMO ? "Démonstration : aucun débit ne sera effectué." : "Tu seras redirigé vers la page de paiement sécurisée Stripe (mode test)."}
               </Texte>
             </View>
           </View>
@@ -159,7 +160,7 @@ export default function Paiement() {
             <Texte variante="micro">TOTAL</Texte>
             <Texte variante="soustitre">{euros(panier.totalCents)}</Texte>
           </View>
-          <Bouton titre="Payer" taille="lg" chargement={enCours} onPress={payer} style={{ flex: 1.2 }} />
+          <Bouton titre={MODE_DEMO ? "Simuler le paiement" : "Payer avec Stripe"} taille="lg" chargement={enCours} onPress={payer} style={{ flex: 1.2 }} />
         </View>
       </KeyboardAvoidingView>
     </Ecran>

@@ -1,99 +1,41 @@
-# Livrer une version au client
+# Livraison — 30 septembre 2026
 
-## iPhone / Android — Expo Go (recette client, gratuit)
+## Nature de la livraison
 
-C'est le canal utilisé pour la recette. Aucun compte Apple Developer nécessaire.
+Amélioration du dépôt React Native existant, et ajout d’un premier serveur de bêta. **Le périmètre intégral du cahier des charges n’est pas achevé pour une exploitation réelle.** Il faut distinguer les écrans fonctionnels en démonstration et les actions raccordées à l’API.
 
-**Côté client :**
+| Parcours | Démonstration locale | API de bêta |
+|---|---|---|
+| Catalogue, recherche, filtres, favoris | Oui | Oui, snapshot complet sans pagination |
+| Inscription et connexion | Comptes fictifs / code fixe | OTP Brevo, sessions révocables |
+| Photos et dépôt d’annonce | Local | Upload WebP avec suppression EXIF/GPS |
+| Messagerie, offres | Oui | Messages + offre acceptée/refusée ; pas de contre-offre |
+| Paiement en main propre | Simulé | Checkout Stripe de test + webhook |
+| Code et transfert vendeur | Simulé | Serveur, droits, cinq essais, idempotence |
+| KYC et compte vendeur | Simulé | Onboarding Stripe Express ; statut KYC UI non synchronisé |
+| Colissimo | Simulation complète | Bloqué, intégration à développer |
+| Litiges | Simulation complète | Ouverture / discussion / gel du transfert ; résolution financière à développer |
+| Évaluations | Oui | Après transaction finalisée, une note par partie |
+| Notifications | Simulées | Internes pour certains événements ; e-mail OTP seulement |
+| Recherches enregistrées | Oui | Sauvegarde ; alertes automatiques à développer |
+| Modération / sanctions | Oui | Contrôle admin côté serveur ; provisionnement admin hors UI |
+| DAC7 / RGPD export et effacement | Simulation | À développer avant lancement |
+| Apple / Google Login | Retirés de l’accueil | Non implémentés |
+| App Store / Play Store | Projet Expo configuré | Pas de build signée ni de publication |
 
-1. Installer **Expo Go** depuis l'App Store (iPhone) ou le Play Store (Android).
-2. Ouvrir le lien de recette envoyé par Liked.
-3. L'application se charge et s'utilise normalement.
+## Changements visibles
 
-**Côté équipe — publier une nouvelle version :**
+Accueil éditorial, nouvelle page de bienvenue, navigation visiteur, catalogue conservant les codes graphiques du brief, prix avec protection sur les cartes, erreurs réseau explicites, boutons qui bloquent les doubles appuis. Le statut démonstration est visible ; aucune connexion sociale fictive n’est présentée comme réelle. Permissions Android nettoyées (microphone retiré).
 
-```bash
-cd ~/Developer/liked && eas update --branch preview --message "Ce qui change"
-```
+## Validation
 
-La mise à jour est instantanée : le client n'a rien à réinstaller, il relance
-simplement l'application depuis Expo Go.
+- TypeScript application et serveur.
+- 18 tests métier / HTTP réussis ; Stripe et Brevo remplacés par des doubles de test.
+- Vérification navigateur au format 390 × 844 : accueil, catalogue visiteur, connexion démo, fiche article, panier, création de commande et code de remise fictif.
+- Export Expo iOS (Hermes), Android (Hermes) et web réussi. Cela valide les bundles, pas la signature ni une installation sur appareil réel.
 
-Comptes de démonstration : `demo@liked.re` (membre vérifié, Saint-Pierre) et
-`admin@liked.re` (back-office). Code de vérification à l'inscription : `123456`.
+Les clés API n’étant pas configurées, aucun e-mail réel, paiement Stripe réel, onboarding vendeur réel ou envoi Colissimo n’a été exécuté. Aucun compte externe n’a été modifié avec les mots de passe fournis.
 
-## iPhone — TestFlight (vraie application)
+## Prochaine recette
 
-Pour une application autonome avec l'icône Liked sur l'écran d'accueil, il faut
-un compte Apple Developer (99 €/an) :
-
-```bash
-eas build --platform ios --profile production
-```
-
-puis `eas submit -p ios`. Les testeurs reçoivent une invitation TestFlight par
-e-mail. Les testeurs internes y ont accès immédiatement ; les testeurs externes
-passent par une revue Apple (1 à 3 jours).
-
-## Android — APK d'essai
-
-```bash
-eas build --platform android --profile preview
-```
-
-Produit un APK téléchargeable, installable directement sur un téléphone Android
-(autoriser les « sources inconnues »). Pour le Play Store, générer une clé de
-production et passer sur le profil `production`.
-
-## Recette en local
-
-- iOS : `npx expo run:ios`
-- Android : `npx expo run:android`
-- Serveur de développement seul : `npx expo start`
-
-## Pièges connus
-
-- **Ne pas placer le dépôt dans un dossier synchronisé iCloud** (Bureau,
-  Documents) : iCloud téléverse `node_modules` en continu, sature les I/O et
-  fait échouer `npm install`, `expo prebuild` et `xcodebuild` avec des erreurs
-  de disque. Emplacement recommandé : `~/Developer/liked`.
-- `metro.config.js` force le profil de transformation `default` : sans lui, le
-  binaire hermesc de react-native 0.81 refuse les champs de classe privés `#x`
-  utilisés par la Nouvelle Architecture.
-
-## Compiler l'application native iOS
-
-Le projet natif est généré (`ios/`) et les 106 pods sont installés.
-
-```bash
-cd ~/Developer/liked && npx expo run:ios
-```
-
-### Si la compilation échoue sur « No available simulator runtimes »
-
-Symptôme : `SimServiceContext supportedRuntimes=[]`, ou `iOS 26.5 Platform Not
-Installed` alors que `xcrun simctl runtime list` affiche bien une image `Ready`.
-
-Le runtime est téléchargé mais son volume n'est pas enregistré auprès de
-CoreSimulator — état bloqué au niveau du système, qu'aucune commande ne répare.
-**Redémarrer le Mac** suffit : le volume est remonté au démarrage.
-
-Après redémarrage, vérifier que le runtime est bien listé :
-
-```bash
-xcrun simctl list runtimes
-```
-
-La ligne `iOS 26.5` doit apparaître. Sinon, réinstaller la plateforme :
-
-```bash
-xcodebuild -downloadPlatform iOS
-```
-
-### Rappel CocoaPods
-
-`pod install` échoue si le terminal n'est pas en UTF-8 :
-
-```bash
-cd ios && LANG=en_US.UTF-8 pod install
-```
+Configurer les clés test et un expéditeur Brevo, effectuer une transaction complète entre deux utilisateurs sur deux appareils, tester les erreurs prestataires et retours 3DS, puis compléter les fonctions serveur manquantes listées ci-dessus. Les photos de preuve de litige doivent être privées avant utilisation avec des données personnelles réelles.

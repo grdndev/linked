@@ -21,5 +21,7 @@ export function ecrireEtat(etat: unknown) {
 }
 
 export async function effacerEtat() {
+  if (minuteur) clearTimeout(minuteur);
+  minuteur = null;
   await AsyncStorage.removeItem(CLE);
 }

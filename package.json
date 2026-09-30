@@ -8,7 +8,11 @@
     "ios": "expo run:ios",
     "android": "expo run:android",
     "typecheck": "tsc --noEmit",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "web": "expo start --web",
+    "api": "npm --prefix server run dev",
+    "test": "npm --prefix server test",
+    "export": "expo export --platform all"
   },
   "dependencies": {
     "@expo-google-fonts/outfit": "^0.4.1",

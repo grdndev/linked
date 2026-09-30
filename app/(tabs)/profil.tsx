@@ -1,3 +1,4 @@
+import { MODE_DEMO } from '@/services/config';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
@@ -62,10 +63,10 @@ export default function Profil() {
           </View>
         </View>
 
-        <Pressable onPress={() => router.push('/portefeuille')} style={styles.portefeuille}>
+        <Pressable onPress={() => router.push(MODE_DEMO ? '/portefeuille' : '/stripe')} style={styles.portefeuille}>
           <View style={{ flex: 1, gap: 2 }}>
-            <Texte variante="micro" couleur="rgba(255,255,255,0.7)">MON PORTEFEUILLE</Texte>
-            <Texte variante="titre" couleur={colors.blanc}>{euros(moi.soldePortefeuilleCents)}</Texte>
+            <Texte variante="micro" couleur="rgba(255,255,255,0.7)">{MODE_DEMO ? 'MON PORTEFEUILLE' : 'MON COMPTE VENDEUR'}</Texte>
+            <Texte variante="titre" couleur={colors.blanc}>{MODE_DEMO ? euros(moi.soldePortefeuilleCents) : 'Stripe Connect'}</Texte>
           </View>
           <Etiquette libelle={kyc.libelle} ton={kyc.ton} />
         </Pressable>
@@ -77,7 +78,7 @@ export default function Profil() {
             icone="shield-checkmark-outline"
             titre="Vérification d'identité"
             valeur={kyc.libelle}
-            onPress={() => router.push('/kyc')}
+            onPress={() => router.push(MODE_DEMO ? '/kyc' : '/stripe')}
           />
         </Groupe>
 
@@ -107,7 +108,7 @@ export default function Profil() {
               'Se déconnecter',
               true,
             );
-            if (ok) { deconnecter(); router.replace('/bienvenue'); }
+            if (ok) { await deconnecter(); router.replace('/bienvenue'); }
           }}
         />
       </ScrollView>

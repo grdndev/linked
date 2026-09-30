@@ -65,10 +65,10 @@ export default function DetailAnnonce() {
   const cat = categorieParSlug(annonce.categorie);
   const protection = fraisProtectionCents(annonce.prixCents);
 
-  const contacter = () => {
+  const contacter = async () => {
     if (!moi) return router.push('/bienvenue');
-    const conversationId = ouvrirConversation(annonce.id);
-    router.push(`/discussion/${conversationId}`);
+    const conversationId = await ouvrirConversation(annonce.id);
+    if (conversationId) router.push(`/discussion/${conversationId}`);
   };
 
   return (

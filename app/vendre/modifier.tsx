@@ -54,18 +54,18 @@ export default function ModifierAnnonce() {
 
         <Bouton
           titre="Enregistrer" pleineLargeur
-          onPress={() => {
+          onPress={async () => {
             if (prixCents < 100) return setErreur('Le prix minimum est de 1 €.');
-            modifierAnnonce(annonce.id, { titre: titre.trim(), description: description.trim(), prixCents, communeRemise: commune });
-            router.back();
+            const result = await modifierAnnonce(annonce.id, { titre: titre.trim(), description: description.trim(), prixCents, communeRemise: commune });
+            if (result !== false) router.back();
           }}
         />
         <Bouton
           titre={annonce.statut === 'masquee' ? 'Remettre en ligne' : 'Masquer temporairement'}
           ton="contour" pleineLargeur
-          onPress={() => {
-            modifierAnnonce(annonce.id, { statut: annonce.statut === 'masquee' ? 'en_ligne' : 'masquee' });
-            router.back();
+          onPress={async () => {
+            const result = await modifierAnnonce(annonce.id, { statut: annonce.statut === 'masquee' ? 'en_ligne' : 'masquee' });
+            if (result !== false) router.back();
           }}
         />
       </ScrollView>

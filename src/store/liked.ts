@@ -1,4 +1,7 @@
 import { create } from 'zustand';
+import { MODE_DEMO } from '@/services/config';
+import { installHttpStore } from './http';
+import type { EtatPersiste } from '@/types/state';
 
 import {
   ANNONCES_SEED,
@@ -38,26 +41,10 @@ import type {
 } from '@/types';
 import { ecrireEtat, effacerEtat, lireEtat } from './persistance';
 
-interface EtatPersiste {
-  utilisateurs: Utilisateur[];
-  annonces: Annonce[];
-  conversations: Conversation[];
-  messages: Message[];
-  commandes: Commande[];
-  litiges: Litige[];
-  evaluations: Evaluation[];
-  favoris: Record<string, string[]>; // utilisateurId -> annonceIds
-  recherchesSauvegardees: RechercheSauvegardee[];
-  signalements: Signalement[];
-  notifications: Notification[];
-  mouvements: MouvementPortefeuille[];
-  journalAdmin: EntreeJournalAdmin[];
-  sessionId: string | null;
-  consentementMesure: boolean;
-}
 
 interface ActionsLiked {
   amorcer: () => Promise<void>;
+  rafraichir: () => Promise<void>;
   reinitialiser: () => Promise<void>;
 
   // — Comptes (§4.1)
@@ -70,7 +57,7 @@ interface ActionsLiked {
     majeur: boolean;
     code: string;
   }) => Promise<{ ok: boolean; erreur?: string }>;
-  connecter: (email: string) => Promise<{ ok: boolean; erreur?: string }>;
+  connecter: (email: string, code?: string) => Promise<{ ok: boolean; erreur?: string }>;
   connecterAvec: (fournisseur: 'google' | 'apple') => Promise<{ ok: boolean }>;
   deconnecter: () => void;
   majProfil: (patch: Partial<Utilisateur>) => void;
@@ -85,8 +72,8 @@ interface ActionsLiked {
   demanderVirement: (montantCents: number) => Promise<{ ok: boolean; erreur?: string }>;
 
   // — Annonces (§4.2)
-  publierAnnonce: (brouillon: Omit<Annonce, 'id' | 'vendeurId' | 'statut' | 'publieeLe' | 'favoris' | 'vues' | 'signalements'>) => string;
-  modifierAnnonce: (annonceId: string, patch: Partial<Annonce>) => void;
+  publierAnnonce: (brouillon: Omit<Annonce, 'id' | 'vendeurId' | 'statut' | 'publieeLe' | 'favoris' | 'vues' | 'signalements'>) => string | Promise<string>;
+  modifierAnnonce: (annonceId: string, patch: Partial<Annonce>) => void | Promise<boolean>;
   supprimerAnnonce: (annonceId: string) => void;
   incrementerVue: (annonceId: string) => void;
 
@@ -97,7 +84,7 @@ interface ActionsLiked {
   marquerRechercheVue: (rechercheId: string) => void;
 
   // — Messagerie (§4.4)
-  ouvrirConversation: (annonceId: string) => string;
+  ouvrirConversation: (annonceId: string) => string | Promise<string>;
   envoyerMessage: (conversationId: string, texte: string) => void;
   faireOffre: (conversationId: string, montantCents: number) => void;
   repondreOffre: (messageId: string, reponse: 'acceptee' | 'refusee', contrePropositionCents?: number) => void;
@@ -121,7 +108,7 @@ interface ActionsLiked {
   annulerCommande: (commandeId: string, motif: string) => Promise<void>;
 
   // — Litiges & évaluations (§4.7)
-  ouvrirLitige: (commandeId: string, motif: MotifLitige, description: string, photos: string[]) => string;
+  ouvrirLitige: (commandeId: string, motif: MotifLitige, description: string, photos: string[]) => string | Promise<string>;
   repondreLitige: (litigeId: string, texte: string) => void;
   resoudreLitige: (litigeId: string, issue: IssueLitige, montantCents: number, motivation: string) => Promise<void>;
   evaluer: (commandeId: string, note: number, commentaire: string) => void;
@@ -141,6 +128,7 @@ interface ActionsLiked {
 export type EtatLiked = EtatPersiste & {
   pret: boolean;
   chargement: boolean;
+  erreurReseau?: string;
 } & ActionsLiked;
 
 const CLES_PERSISTEES: (keyof EtatPersiste)[] = [
@@ -297,6 +285,8 @@ export const useLiked = create<EtatLiked>()((set, get) => {
       analytique.autoriser(get().consentementMesure);
       await get().libererFondsSiEchu();
     },
+
+    async rafraichir() { await get().libererFondsSiEchu(); },
 
     async reinitialiser() {
       await effacerEtat();
@@ -1033,6 +1023,8 @@ export const useLiked = create<EtatLiked>()((set, get) => {
     },
   };
 });
+
+if (!MODE_DEMO) installHttpStore(useLiked);
 
 /** Un article correspond-il aux filtres d'une recherche sauvegardée ? */
 export function correspond(annonce: Annonce, f: FiltresRecherche): boolean {

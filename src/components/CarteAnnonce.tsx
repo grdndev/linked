@@ -2,7 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { euros } from '@/lib/argent';
+import { euros, fraisProtectionCents } from '@/lib/argent';
 import { colors, radius, shadow, space, type } from '@/theme';
 import type { Annonce } from '@/types';
 import { CoeurFavori } from './CoeurFavori';
@@ -13,10 +13,11 @@ export function CarteAnnonce({ annonce, largeur }: { annonce: Annonce; largeur: 
   const vendue = annonce.statut === 'vendue';
   const reservee = annonce.statut === 'reservee';
   return (
+    <View style={[styles.carte, { width: largeur }, shadow.carte]}>
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={`${annonce.titre}, ${euros(annonce.prixCents)}`}
       onPress={() => router.push(`/annonce/${annonce.id}`)}
-      style={[styles.carte, { width: largeur }, shadow.carte]}
     >
       <View>
         <Image
@@ -25,9 +26,6 @@ export function CarteAnnonce({ annonce, largeur }: { annonce: Annonce; largeur: 
           contentFit="cover"
           transition={180}
         />
-        <View style={styles.coeur}>
-          <CoeurFavori annonceId={annonce.id} taille={17} />
-        </View>
         {vendue || reservee ? (
           <View style={styles.voile}>
             <Etiquette libelle={vendue ? 'Vendu' : 'Réservé'} ton={vendue ? 'neutre' : 'alerte'} />
@@ -36,6 +34,7 @@ export function CarteAnnonce({ annonce, largeur }: { annonce: Annonce; largeur: 
       </View>
       <View style={{ padding: space.md, gap: 3 }}>
         <Texte style={type.prix}>{euros(annonce.prixCents)}</Texte>
+        <Texte variante="micro">{euros(annonce.prixCents + fraisProtectionCents(annonce.prixCents))} protégé</Texte>
         <Texte variante="petit" numberOfLines={1}>
           {annonce.marque} · {annonce.taille}
         </Texte>
@@ -53,6 +52,8 @@ export function CarteAnnonce({ annonce, largeur }: { annonce: Annonce; largeur: 
         </View>
       </View>
     </Pressable>
+    <View style={styles.coeur}><CoeurFavori annonceId={annonce.id} taille={17} /></View>
+    </View>
   );
 }
 

@@ -1,3 +1,4 @@
+import { MODE_DEMO } from '@/services/config';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
@@ -59,7 +60,7 @@ export default function DetailCommande() {
     setEnCours(false);
     if (!resultat.ok) return setErreur(resultat.erreur);
     setErreur(undefined);
-    alerter('Remise confirmée 🎉', 'Les fonds viennent d\'être versés sur ton portefeuille.');
+    alerter('Remise confirmée 🎉', MODE_DEMO ? 'Versement simulé sur ton portefeuille.' : 'Transfert confirmé vers ton compte Stripe de test.');
   };
 
   return (
@@ -232,15 +233,15 @@ export default function DetailCommande() {
 
           <Bouton
             titre="Contacter l'autre partie" ton="discret" pleineLargeur icone="chatbubble-outline"
-            onPress={() => {
-              const conversationId = useLiked.getState().ouvrirConversation(commande.annonceId);
-              router.push(`/discussion/${conversationId}`);
+            onPress={async () => {
+              const conversationId = await useLiked.getState().ouvrirConversation(commande.annonceId);
+              if (conversationId) router.push(`/discussion/${conversationId}`);
             }}
           />
 
           {/* Annulation possible tant que rien n'est parti : l'article n'a été ni
               remis en main propre, ni déposé chez le transporteur. */}
-          {['sequestre', 'etiquette_emise'].includes(commande.statut) ? (
+          {MODE_DEMO && ['sequestre', 'etiquette_emise'].includes(commande.statut) ? (
             <Bouton
               titre="Annuler et rembourser"
               ton="danger"

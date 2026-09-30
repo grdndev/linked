@@ -1,3 +1,5 @@
+import { useRef, useState } from 'react';
+import { alerter } from '@/lib/dialogues';
 import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, font, radius, space } from '@/theme';
@@ -8,7 +10,7 @@ type Taille = 'md' | 'lg' | 'sm';
 
 interface Props {
   titre: string;
-  onPress?: () => void;
+  onPress?: () => unknown;
   ton?: Ton;
   taille?: Taille;
   icone?: keyof typeof Ionicons.glyphMap;
@@ -23,7 +25,9 @@ export function Bouton({
   titre, onPress, ton = 'action', taille = 'md', icone,
   pleineLargeur, chargement, desactive, style,
 }: Props) {
-  const inactif = desactive || chargement;
+  const verrou = useRef(false);
+  const [occupe, setOccupe] = useState(false);
+  const inactif = desactive || chargement || occupe;
   const fonds: Record<Ton, ViewStyle> = {
     action: { backgroundColor: colors.corail },
     encre: { backgroundColor: colors.encre },
@@ -47,7 +51,12 @@ export function Bouton({
     <Pressable
       accessibilityRole="button"
       accessibilityState={{ disabled: inactif }}
-      onPress={inactif ? undefined : onPress}
+      onPress={async () => {
+        if (inactif || verrou.current || !onPress) return;
+        verrou.current = true; setOccupe(true);
+        try { await onPress(); } catch(e) { alerter('Action impossible', (e as Error).message); }
+        finally { verrou.current = false; setOccupe(false); }
+      }}
       style={({ pressed }) => [
         styles.base,
         fonds[ton],
@@ -58,7 +67,7 @@ export function Bouton({
         style,
       ]}
     >
-      {chargement ? (
+      {chargement || occupe ? (
         <ActivityIndicator color={textes[ton]} />
       ) : (
         <View style={styles.contenu}>

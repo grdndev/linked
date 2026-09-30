@@ -76,7 +76,7 @@ export default function Vendre() {
     });
   };
 
-  const valider = () => {
+  const valider = async () => {
     if (!moi) return router.push('/bienvenue');
     if (!moi.majeur) return setErreur("Les moins de 18 ans ne peuvent pas vendre sur Liked.");
     if (photos.length === 0) return setErreur('Ajoute au moins une photo.');
@@ -89,7 +89,7 @@ export default function Vendre() {
     if (prixCents < 100) return setErreur('Le prix minimum est de 1 €.');
     if (!mainPropre && !envoi) return setErreur('Choisis au moins un mode de remise.');
 
-    const annonceId = publier({
+    const annonceId = await publier({
       titre: titre.trim(),
       description: description.trim(),
       photos,
@@ -105,6 +105,7 @@ export default function Vendre() {
       communeRemise: mainPropre ? communeRemise : undefined,
       accepteEnvoi: envoi,
     });
+    if (!annonceId) return;
     reinitialiser();
     router.push(`/annonce/${annonceId}`);
   };

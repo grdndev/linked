@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,12 +16,12 @@ import { useGrille } from '@/lib/grille';
 export default function Accueil() {
   const { largeurColonne } = useGrille();
   const annonces = useLiked((e) => e.annonces);
-  const favoris = useLiked((e) => (e.sessionId ? e.favoris[e.sessionId] ?? [] : []));
+  const favoris = useLiked(useShallow((e) => (e.sessionId ? e.favoris[e.sessionId] ?? [] : [])));
   const moi = useMoi();
   const nonLues = useNotificationsNonLues();
 
   const [rafraichit, setRafraichit] = useState(false);
-  const libererFondsSiEchu = useLiked((e) => e.libererFondsSiEchu);
+  const libererFondsSiEchu = useLiked((e) => e.rafraichir);
 
   /** Le fil se recalcule à chaque rendu ; on en profite pour libérer les fonds
    *  arrivés à échéance, ce que ferait un appel API au rafraîchissement. */
@@ -92,6 +93,15 @@ export default function Accueil() {
           <Texte variante="corpsDoux">Robe, sneakers, Zara…</Texte>
         </Pressable>
 
+        <View style={{ marginHorizontal: space.lg, marginBottom: space.lg, padding: 23, backgroundColor: '#E6ECE5', borderRadius: 22, overflow: 'hidden' }}>
+          <Texte variante="micro" couleur={colors.encre80} style={{ letterSpacing: 2 }}>LE DRESSING DE L’ÎLE</Texte>
+          <Texte style={{ fontSize: 30, lineHeight: 33, letterSpacing: -0.8, marginTop: 10, fontFamily: 'Outfit_600SemiBold' }}>Moins de neuf.{'\n'}Plus de coups de cœur.</Texte>
+          <Texte variante="petit" style={{ marginTop: 10, maxWidth: 280 }}>Des pépites de seconde main, à deux pas de chez toi.</Texte>
+          <Pressable onPress={() => router.push('/(tabs)/vendre')} accessibilityRole="button" style={{ marginTop: 17, flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+            <Texte variante="section">Vendre gratuitement</Texte><Ionicons name="arrow-forward" size={18} color={colors.encre}/>
+          </Pressable>
+        </View>
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -103,7 +113,7 @@ export default function Accueil() {
               onPress={() => router.push({ pathname: '/(tabs)/recherche', params: { universe: u.cle } })}
               style={styles.carteUnivers}
             >
-              <Texte style={{ fontSize: 26 }}>{u.emoji}</Texte>
+
               <Texte variante="section">{u.nom}</Texte>
             </Pressable>
           ))}
@@ -181,7 +191,7 @@ const styles = StyleSheet.create({
   rangeeUnivers: { paddingHorizontal: space.lg, gap: space.md, paddingBottom: space.lg },
   carteUnivers: {
     backgroundColor: colors.blanc, borderRadius: radius.lg,
-    paddingHorizontal: space.xl, paddingVertical: space.lg,
+    paddingHorizontal: space.xl, paddingVertical: space.md,
     alignItems: 'center', gap: 4, minWidth: 104,
   },
   titreSection: {

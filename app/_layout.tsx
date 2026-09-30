@@ -1,3 +1,5 @@
+import { AppState } from 'react-native';
+import { MODE_DEMO } from '@/services/config';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { Stack } from 'expo-router';
@@ -16,6 +18,7 @@ export default function DispositionRacine() {
   const policesPretes = useMarqueFonts();
   const pret = useLiked((e) => e.pret);
   const amorcer = useLiked((e) => e.amorcer);
+  const rafraichir = useLiked((e) => e.rafraichir);
   const libererFondsSiEchu = useLiked((e) => e.libererFondsSiEchu);
 
   useEffect(() => {
@@ -26,10 +29,17 @@ export default function DispositionRacine() {
     if (policesPretes && pret) SplashScreen.hideAsync().catch(() => {});
   }, [policesPretes, pret]);
 
+  useEffect(() => {
+    if (MODE_DEMO) return;
+    const subscription = AppState.addEventListener('change',state => { if (state === 'active') void rafraichir(); });
+    const timer = setInterval(() => { if (AppState.currentState === 'active') void rafraichir(); },15000);
+    return () => { subscription.remove(); clearInterval(timer); };
+  }, [rafraichir]);
+
   // Autorisation et jeton de notification, à transmettre à l'API en production.
   const sessionId = useLiked((e) => e.sessionId);
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || !MODE_DEMO) return;
     enregistrerPourLesPush().catch(() => {});
   }, [sessionId]);
 
@@ -54,7 +64,6 @@ export default function DispositionRacine() {
         >
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="paiement/[id]" options={{ animation: 'slide_from_bottom' }} />
-          <Stack.Screen name="vendre/publier" options={{ animation: 'slide_from_bottom' }} />
         </Stack>
       </SafeAreaProvider>
     </GestureHandlerRootView>

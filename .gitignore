@@ -13,3 +13,8 @@ android/
 *.p12
 *.key
 *.mobileprovision
+
+.env.*
+!.env.example
+server/data/
+coverage/

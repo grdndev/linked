@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 
 import { Bouton, Champ, Ecran, EnTete, Feuille, Puce, Texte } from '@/components';
 import { COMMUNES } from '@/data/communes';
+import { MODE_DEMO } from '@/services/config';
 import { CODE_DEMO } from '@/services/verification';
 import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
@@ -19,7 +20,7 @@ export default function Inscription() {
   const [email, setEmail] = useState('');
   const [telephone, setTelephone] = useState('');
   const [commune, setCommune] = useState('Saint-Denis');
-  const [majeur, setMajeur] = useState(true);
+  const [majeur, setMajeur] = useState(false);
   const [code, setCode] = useState('');
   const [erreur, setErreur] = useState<string>();
   const [enCours, setEnCours] = useState(false);
@@ -32,15 +33,16 @@ export default function Inscription() {
     if (!email.includes('@')) return setErreur('E-mail invalide.');
     if (canal === 'sms' && telephone.replace(/\D/g, '').length < 9) return setErreur('Numéro invalide.');
     setEnCours(true);
-    await demanderCode(destination, canal);
-    setEnCours(false);
-    setErreur(undefined);
-    setEtape('verification');
+    try {
+      await demanderCode(destination, canal);
+      setErreur(undefined); setEtape('verification');
+    } catch(e) { setErreur((e as Error).message); }
+    finally { setEnCours(false); }
   };
 
   const valider = async () => {
     setEnCours(true);
-    const resultat = await inscrire({ pseudo, email, telephone: telephone || undefined, commune, majeur, code });
+    const resultat = await inscrire({ pseudo, email, telephone: canal === 'sms' ? telephone : undefined, commune, majeur, code });
     setEnCours(false);
     if (!resultat.ok) return setErreur(resultat.erreur);
     router.replace('/(tabs)');
@@ -77,7 +79,7 @@ export default function Inscription() {
                 <Texte variante="micro">VÉRIFICATION PAR</Texte>
                 <View style={{ flexDirection: 'row', gap: space.sm }}>
                   <Puce libelle="E-mail" active={canal === 'email'} onPress={() => setCanal('email')} />
-                  <Puce libelle="SMS" active={canal === 'sms'} onPress={() => setCanal('sms')} />
+                  {MODE_DEMO && <Puce libelle="SMS" active={canal === 'sms'} onPress={() => setCanal('sms')} />}
                 </View>
               </View>
 
@@ -106,7 +108,7 @@ export default function Inscription() {
                 label="Code de vérification" value={code} onChangeText={setCode}
                 keyboardType="number-pad" maxLength={6} placeholder="000000"
                 erreur={erreur}
-                aide={`Environnement de recette : le code est ${CODE_DEMO}.`}
+                aide={MODE_DEMO ? `Démonstration : le code est ${CODE_DEMO}.` : undefined}
               />
               <Bouton titre="Créer mon compte" pleineLargeur chargement={enCours} onPress={valider} />
               <Bouton titre="Modifier mes informations" ton="contour" pleineLargeur onPress={() => setEtape('identite')} />

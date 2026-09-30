@@ -67,9 +67,8 @@ export function euros(cents: number): string {
 
 /** Saisie utilisateur « 12,50 » → 1250 */
 export function parseEuros(saisie: string): number | null {
-  const nettoye = saisie.replace(/[^0-9,.]/g, '').replace(',', '.');
-  if (!nettoye) return null;
-  const valeur = Number(nettoye);
-  if (Number.isNaN(valeur) || valeur < 0) return null;
-  return Math.round(valeur * 100);
+  const nettoye = saisie.trim().replace(/\s/g, '').replace(/€$/, '');
+  if (!/^\d+(?:[.,]\d{1,2})?$/.test(nettoye)) return null;
+  const cents = Math.round(Number(nettoye.replace(',', '.')) * 100);
+  return Number.isSafeInteger(cents) ? cents : null;
 }
