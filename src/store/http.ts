@@ -42,6 +42,10 @@ export function installHttpStore(store: StoreApi<EtatLiked>) {
       catch(error) { alerter('Action impossible',(error as Error).message); return undefined; }
     };
   }
+  const orderAction = async (id: string,path: string,input: unknown = {}) => {
+    const response = await api<{ok:boolean;erreur?:string;state:EtatPersiste}>(`/orders/${id}/${path}`,input);
+    generation++; update(response.state); return response;
+  };
   store.setState({ ...empty, ...overrides,
     async amorcer() { try { await restoreSession(); await sync(); } catch(error) { store.setState({ pret: true, erreurReseau: (error as Error).message }); } },
     rafraichir: sync,
@@ -79,11 +83,19 @@ export function installHttpStore(store: StoreApi<EtatLiked>) {
       try {
         const response = await api<{ ok: boolean; commandeId: string; checkoutUrl: string; state: EtatPersiste }>('/checkout',input);
         generation++; update(response.state);
-        if (Platform.OS === 'web') window.open(response.checkoutUrl,'_blank','noopener,noreferrer');
+        if (Platform.OS === 'web') window.location.assign(response.checkoutUrl);
         else await Linking.openURL(response.checkoutUrl);
         return { ok: true, commandeId: response.commandeId };
       } catch(error) { return { ok: false, erreur: (error as Error).message }; }
     },
+    async genererEtiquette(id) { await orderAction(id,'shipping',{action:'label'}); },
+    async marquerExpedie(id) { await orderAction(id,'shipping',{action:'ship'}); },
+    async simulerLivraison(id) { await orderAction(id,'shipping',{action:'deliver'}); },
+    async confirmerReception(id) {
+      try { return await orderAction(id,'shipping',{action:'receive'}); }
+      catch(error) { return {ok:false,erreur:(error as Error).message}; }
+    },
+    async annulerCommande(id) { await orderAction(id,'refund'); },
     async validerCodeRemise(id,code) {
       try {
         const response = await api<{ ok: boolean; erreur?: string; state: EtatPersiste }>(`/orders/${id}/handover`,{ code });

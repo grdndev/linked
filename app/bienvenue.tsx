@@ -31,6 +31,7 @@ export default function Bienvenue() {
         <Bouton titre="Découvrir les articles" taille="lg" pleineLargeur onPress={() => router.replace('/(tabs)')} />
         <Bouton titre="Créer mon compte" ton="contourClair" pleineLargeur onPress={() => router.push('/inscription')} />
         <Pressable accessibilityRole="button" onPress={() => router.push('/connexion')} style={{ padding: 10 }}><Texte centre couleur={colors.blanc}>Déjà un compte ? Connecte-toi</Texte></Pressable>
+        {MODE_DEMO && <Bouton titre="Essayer les parcours de test" ton="contourClair" pleineLargeur onPress={() => router.push('/test-lab')} />}
         {MODE_DEMO && <Texte variante="micro" centre couleur="#C6D5D5">DÉMONSTRATION · ARTICLES ET TRANSACTIONS FICTIFS</Texte>}
       </View>
     </ScrollView>

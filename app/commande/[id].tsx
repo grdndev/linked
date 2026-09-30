@@ -23,6 +23,7 @@ const ETIQUETTES: Record<StatutCommande, { libelle: string; ton: 'neutre' | 'suc
   livre: { libelle: 'Livré', ton: 'succes' },
   litige: { libelle: 'Litige en cours', ton: 'danger' },
   finalisee: { libelle: 'Terminée', ton: 'succes' },
+  remboursement_en_cours: { libelle: 'Remboursement en cours', ton: 'alerte' },
   remboursee: { libelle: 'Remboursée', ton: 'neutre' },
   annulee: { libelle: 'Annulée', ton: 'neutre' },
 };
@@ -123,10 +124,9 @@ export default function DetailCommande() {
             {commande.statut === 'sequestre' ? (
               <>
                 <Texte variante="petit">
-                  Génère ton étiquette prépayée, imprime-la, colle-la sur le colis et dépose-le
-                  dans n'importe quel bureau de poste de l'île.
+                  Teste les étapes d’envoi. Aucun affranchissement n’est acheté et aucun colis réel ne doit être déposé.
                 </Texte>
-                <Bouton titre="Générer mon étiquette Colissimo" pleineLargeur icone="download-outline"
+                <Bouton titre="Générer une étiquette de test" pleineLargeur icone="download-outline"
                   onPress={() => genererEtiquette(commande.id)} />
               </>
             ) : null}
@@ -138,11 +138,11 @@ export default function DetailCommande() {
                     <Texte variante="corps">{commande.numeroSuivi}</Texte>
                   </Pressable>
                 </View>
-                <Texte variante="micro">Étiquette PDF : {commande.etiquetteUrl}</Texte>
+                <Texte variante="micro">Étiquette de test · non valable pour un envoi postal</Texte>
               </>
             ) : null}
             {commande.statut === 'etiquette_emise' ? (
-              <Bouton titre="J'ai déposé le colis" ton="encre" pleineLargeur onPress={() => marquerExpedie(commande.id)} />
+              <Bouton titre="Simuler le dépôt du colis" ton="encre" pleineLargeur onPress={() => marquerExpedie(commande.id)} />
             ) : null}
             {commande.statut === 'expedie' ? (
               <Bouton titre="Simuler la livraison (recette)" ton="contour" pleineLargeur onPress={() => simulerLivraison(commande.id)} />
@@ -180,7 +180,7 @@ export default function DetailCommande() {
               <View style={{ flex: 1 }}>
                 <Texte variante="corps">Versement dans {compteARebours(commande.liberableLe)}</Texte>
                 <Texte variante="petit">
-                  Les fonds sont versés au vendeur 48 h après la livraison, sauf litige ouvert d'ici là.
+                  Les fonds de test sont versés au vendeur 48 h après la livraison simulée, sauf litige ouvert d’ici là.
                 </Texte>
               </View>
             </View>
@@ -241,7 +241,7 @@ export default function DetailCommande() {
 
           {/* Annulation possible tant que rien n'est parti : l'article n'a été ni
               remis en main propre, ni déposé chez le transporteur. */}
-          {MODE_DEMO && ['sequestre', 'etiquette_emise'].includes(commande.statut) ? (
+          {['sequestre', 'etiquette_emise'].includes(commande.statut) ? (
             <Bouton
               titre="Annuler et rembourser"
               ton="danger"
@@ -258,12 +258,10 @@ export default function DetailCommande() {
                 );
                 if (!ok) return;
                 setEnCours(true);
-                await annulerCommande(
-                  commande.id,
-                  jeSuisAcheteur ? "Annulation à la demande de l'acheteur" : 'Annulation à la demande du vendeur',
-                );
-                setEnCours(false);
-                alerter('Commande annulée', 'Le remboursement a été demandé au prestataire de paiement.');
+                try {
+                  await annulerCommande(commande.id, jeSuisAcheteur ? "Annulation à la demande de l'acheteur" : 'Annulation à la demande du vendeur');
+                  alerter('Demande prise en compte', MODE_DEMO ? 'Le remboursement est simulé. Aucun argent réel n’a été débité.' : 'Le statut de la commande indique si Stripe a confirmé le remboursement ou s’il est encore en cours.');
+                } finally { setEnCours(false); }
               }}
             />
           ) : null}

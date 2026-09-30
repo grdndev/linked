@@ -64,3 +64,7 @@ Les tests couvrent l’OTP, les sessions, les droits d’accès, les profils pub
 - [Avant ouverture publique](docs/MISE-EN-PRODUCTION.md)
 
 Le serveur de bêta est prévu pour **une seule instance**, sur un volume persistant. SQLite et les photos doivent être sauvegardés ensemble. Ne pas déployer tel quel sur un filesystem éphémère, ni ouvrir les paiements réels. Les clés `sk_live_` sont refusées.
+
+## Tester sur iPhone
+
+Ouvrir l’atelier depuis le bandeau « Espace de test ». Les scénarios achat, carte refusée, livraison et remboursement sont disponibles sans clés en mode mock. Voir [le guide iPhone](docs/TEST-IPHONE.md) pour le partage Safari et TestFlight. L’API inclut les remboursements Stripe avant expédition, la livraison simulée et la file d’e-mails transactionnels Brevo. Les clés réelles de recette et l’hébergement de l’API restent requis pour ces appels externes.

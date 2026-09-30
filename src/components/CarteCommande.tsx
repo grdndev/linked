@@ -18,6 +18,7 @@ const ETATS: Record<StatutCommande, { libelle: string; ton: 'neutre' | 'succes' 
   livre: { libelle: 'Livré', ton: 'succes' },
   litige: { libelle: 'Litige', ton: 'danger' },
   finalisee: { libelle: 'Terminée', ton: 'succes' },
+  remboursement_en_cours: { libelle: 'Remboursement en cours', ton: 'alerte' },
   remboursee: { libelle: 'Remboursée', ton: 'neutre' },
   annulee: { libelle: 'Annulée', ton: 'neutre' },
 };

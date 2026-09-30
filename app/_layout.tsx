@@ -1,3 +1,4 @@
+import { Dialogues } from '@/components/Dialogues';
 import { AppState } from 'react-native';
 import { MODE_DEMO } from '@/services/config';
 import { useEffect } from 'react';
@@ -65,6 +66,7 @@ export default function DispositionRacine() {
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="paiement/[id]" options={{ animation: 'slide_from_bottom' }} />
         </Stack>
+        <Dialogues />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

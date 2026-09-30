@@ -13,10 +13,11 @@ Amélioration du dépôt React Native existant, et ajout d’un premier serveur 
 | Paiement en main propre | Simulé | Checkout Stripe de test + webhook |
 | Code et transfert vendeur | Simulé | Serveur, droits, cinq essais, idempotence |
 | KYC et compte vendeur | Simulé | Onboarding Stripe Express ; statut KYC UI non synchronisé |
-| Colissimo | Simulation complète | Bloqué, intégration à développer |
+| Livraison | Simulation complète | Étiquette/dépôt/livraison simulés + versement différé 48 h ; aucun transport réel |
+| Remboursement avant envoi/remise | Simulé | Intégral via Stripe, statut en cours puis confirmation, idempotent |
 | Litiges | Simulation complète | Ouverture / discussion / gel du transfert ; résolution financière à développer |
 | Évaluations | Oui | Après transaction finalisée, une note par partie |
-| Notifications | Simulées | Internes pour certains événements ; e-mail OTP seulement |
+| Notifications | Simulées | OTP + e-mails de paiement/expédition/livraison/remboursement/versement ; reprise sur échec |
 | Recherches enregistrées | Oui | Sauvegarde ; alertes automatiques à développer |
 | Modération / sanctions | Oui | Contrôle admin côté serveur ; provisionnement admin hors UI |
 | DAC7 / RGPD export et effacement | Simulation | À développer avant lancement |
@@ -30,12 +31,16 @@ Accueil éditorial, nouvelle page de bienvenue, navigation visiteur, catalogue c
 ## Validation
 
 - TypeScript application et serveur.
-- 18 tests métier / HTTP réussis ; Stripe et Brevo remplacés par des doubles de test.
-- Vérification navigateur au format 390 × 844 : accueil, catalogue visiteur, connexion démo, fiche article, panier, création de commande et code de remise fictif.
+- 26 tests métier / HTTP réussis ; Stripe et Brevo remplacés par des doubles de test.
+- Vérification navigateur au format 390 × 844 : accueil, catalogue visiteur, connexion démo, fiche article, panier, commande et code de remise ; atelier de recette, livraison simulée, changement de rôle, remboursement confirmé, carte refusée et aperçus d’e-mails.
 - Export Expo iOS (Hermes), Android (Hermes) et web réussi. Cela valide les bundles, pas la signature ni une installation sur appareil réel.
 
-Les clés API n’étant pas configurées, aucun e-mail réel, paiement Stripe réel, onboarding vendeur réel ou envoi Colissimo n’a été exécuté. Aucun compte externe n’a été modifié avec les mots de passe fournis.
+Les clés API n’étant pas configurées, aucun e-mail réel, paiement Stripe réel, onboarding vendeur réel ou envoi Colissimo n’a été exécuté. Les tentatives de connexion Stripe et Brevo ont été refusées (identifiants incorrects). Aucune clé n’a pu être configurée, aucun e-mail Brevo ni paiement Stripe de bout en bout n’a été vérifié.
 
 ## Prochaine recette
 
 Configurer les clés test et un expéditeur Brevo, effectuer une transaction complète entre deux utilisateurs sur deux appareils, tester les erreurs prestataires et retours 3DS, puis compléter les fonctions serveur manquantes listées ci-dessus. Les photos de preuve de litige doivent être privées avant utilisation avec des données personnelles réelles.
+
+## Partage iPhone
+
+Atelier de test accessible depuis le bandeau de l’application et la page de bienvenue. Trois scénarios : achat/remise, achat/livraison, carte refusée. Les boutons acheteur/vendeur permettent de tester les deux côtés sur un seul appareil. Consulter `TEST-IPHONE.md`. Le profil EAS `testflight` est préparé en mode démonstration, sans build signée exécutée.

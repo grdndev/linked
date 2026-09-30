@@ -4,7 +4,9 @@ import type Stripe from 'stripe';
 import { Database } from '../src/database';
 import { command, newUser } from '../src/domain';
 import { snapshot, HttpError } from '../src/security';
-import { checkout, handover, webhook } from '../src/payments';
+import { checkout, handover, webhook, refundOrder, shipping, settleDueOrders } from '../src/payments';
+import { flushEmails } from '../src/emails';
+import { orderEmail } from '../../src/lib/orderEmail';
 import { calculerPanier, parseEuros } from '../../src/lib/argent';
 import { filtrerCoordonnees } from '../../src/lib/filtreCoordonnees';
 
@@ -18,17 +20,18 @@ function fixture() {
   const conversationId = command(state,buyer.id,'ouvrirConversation',[listingId]) as string;
   db.sql.prepare('UPDATE marketplace SET data=? WHERE id=1').run(JSON.stringify(state));
   db.sql.prepare('INSERT INTO accounts VALUES (?,?)').run(seller.id,'acct_test');
-  let transfers = 0;
+  let transfers = 0; let refunds = 0; let refundStatus = 'succeeded'; let amount = 1970;
   let checkoutInput: Stripe.Checkout.SessionCreateParams | undefined;
   const stripe = {
     accounts: { retrieve: async () => ({ capabilities:{transfers:'active'}, details_submitted:true }) },
     checkout: { sessions: { create: async (params: Stripe.Checkout.SessionCreateParams) => { checkoutInput = params; return { id:'cs_test',url:'https://checkout.stripe.com/test' }; } } },
-    paymentIntents: { retrieve: async () => ({ id:'pi_test',status:'succeeded',amount_received:1970,currency:'eur',latest_charge:'ch_test' }) },
+    paymentIntents: { retrieve: async () => ({ id:'pi_test',status:'succeeded',amount_received:amount,currency:'eur',latest_charge:'ch_test' }) },
+    refunds: { create: async () => { refunds++; return {id:'re_test',status:refundStatus}; }, retrieve: async () => ({id:'re_test',status:refundStatus,payment_intent:'pi_test',currency:'eur',amount}) },
     transfers: { create: async () => { transfers++; return { id:'tr_test' }; } },
   } as unknown as Stripe;
   const pay = () => db.run(s => checkout(db,s,buyer.id,{annonceId:listingId,mode:'main_propre'},stripe,'https://api.liked.test'));
   const paidEvent = (orderId: string,extra = {}) => ({ id:'evt_paid',type:'checkout.session.completed',data:{object:{id:'cs_test',metadata:{orderId},client_reference_id:orderId,payment_status:'paid',currency:'eur',amount_total:1970,payment_intent:'pi_test',...extra}} }) as unknown as Stripe.Event;
-  return { db,state,seller,buyer,stranger,listingId,conversationId,stripe,pay,paidEvent,transfers:()=>transfers,checkoutInput:()=>checkoutInput };
+  return { db,state,seller,buyer,stranger,listingId,conversationId,stripe,pay,paidEvent,transfers:()=>transfers,checkoutInput:()=>checkoutInput,refunds:()=>refunds,setRefundStatus:(v:string)=>{refundStatus=v;},setAmount:(v:number)=>{amount=v;} };
 }
 
 test('frais en centimes : main propre 19,70 €, envoi 25,20 €',() => {
@@ -126,4 +129,72 @@ test('les prix négatifs, ambigus et non finis sont refusés',() => {
   assert.equal(parseEuros('-12'),null); assert.equal(parseEuros('1,2,3'),null);
   assert.equal(parseEuros('Infinity'),null); assert.equal(parseEuros('12,50 €'),1250);
   assert.equal(parseEuros('12.345'),null);
+});
+
+
+test('le remboursement intégral est idempotent et interdit aux tiers',async()=>{
+  const f=fixture();const {commandeId:id}=await f.pay();await f.db.run(s=>webhook(f.db,s,f.paidEvent(id),f.stripe));
+  await assert.rejects(f.db.run(s=>refundOrder(f.db,s,f.stranger.id,id,f.stripe)));
+  await Promise.all([1,2].map(()=>f.db.run(s=>refundOrder(f.db,s,f.buyer.id,id,f.stripe))));
+  assert.equal(f.refunds(),1);assert.equal(f.db.read().commandes[0].statut,'remboursee');
+  assert.equal(f.db.read().annonces[0].statut,'en_ligne');
+  assert.equal(f.db.sql.prepare('SELECT count(*) as n FROM email_outbox').get()!.n,4);
+});
+test('un remboursement en attente bloque remise et revente puis se réconcilie',async()=>{
+  const f=fixture();const {commandeId:id}=await f.pay();await f.db.run(s=>webhook(f.db,s,f.paidEvent(id),f.stripe));
+  f.setRefundStatus('pending');await f.db.run(s=>refundOrder(f.db,s,f.buyer.id,id,f.stripe));
+  assert.equal(f.db.read().commandes[0].statut,'remboursement_en_cours');assert.equal(f.db.read().annonces[0].statut,'reservee');
+  await assert.rejects(f.db.run(s=>handover(f.db,s,f.seller.id,id,'0000',f.stripe)));
+  f.setRefundStatus('succeeded');await settleDueOrders(f.db,f.stripe);
+  assert.equal(f.db.read().commandes[0].statut,'remboursee');assert.equal(f.refunds(),1);
+});
+test('un remboursement échoué reste bloqué sans faux e-mail de réussite',async()=>{
+  const f=fixture();const {commandeId:id}=await f.pay();await f.db.run(s=>webhook(f.db,s,f.paidEvent(id),f.stripe));
+  f.setRefundStatus('failed');await f.db.run(s=>refundOrder(f.db,s,f.seller.id,id,f.stripe));
+  assert.equal(f.db.read().commandes[0].statut,'remboursement_en_cours');
+  assert.equal(f.db.sql.prepare('SELECT count(*) as n FROM email_outbox').get()!.n,2);
+});
+test('livraison simulée : droits, ordre des étapes, gel du litige et versement',async()=>{
+  process.env.SHIPPING_DRIVER='simulated';const f=fixture();f.setAmount(2520);
+  const {commandeId:id}=await f.db.run(s=>checkout(f.db,s,f.buyer.id,{annonceId:f.listingId,mode:'colissimo',adresse:{nomComplet:'Test Acheteur',ligne1:'12 rue de Test',codePostal:'97410',ville:'Saint-Pierre',telephone:'0692000000'}},f.stripe,'https://api.test'));
+  await f.db.run(s=>webhook(f.db,s,f.paidEvent(id,{amount_total:2520}),f.stripe));
+  assert.equal(f.db.read().commandes[0].codeRemise,undefined);
+  await assert.rejects(f.db.run(s=>shipping(f.db,s,f.buyer.id,id,'label')));
+  await assert.rejects(f.db.run(s=>shipping(f.db,s,f.seller.id,id,'deliver')));
+  for(const action of ['label','ship','deliver']) await f.db.run(s=>shipping(f.db,s,f.seller.id,id,action));
+  await assert.rejects(f.db.run(s=>refundOrder(f.db,s,f.buyer.id,id,f.stripe)));
+  await assert.rejects(f.db.run(s=>shipping(f.db,s,f.seller.id,id,'receive',f.stripe)));
+  await f.db.run(s=>shipping(f.db,s,f.buyer.id,id,'receive',f.stripe));
+  assert.equal(f.transfers(),1);assert.equal(f.db.read().commandes[0].statut,'finalisee');
+  assert.equal(f.db.sql.prepare('SELECT count(*) as n FROM email_outbox').get()!.n,8);
+  delete process.env.SHIPPING_DRIVER;
+});
+test('les e-mails échoués sont conservés puis envoyés une seule fois après succès',async()=>{
+  const f=fixture();const {commandeId:id}=await f.pay();await f.db.run(s=>webhook(f.db,s,f.paidEvent(id),f.stripe));
+  await flushEmails(f.db,async()=>{throw new Error('Brevo unavailable');});
+  assert.equal(f.db.read().commandes[0].statut,'sequestre');
+  assert.equal(f.db.sql.prepare('SELECT attempts FROM email_outbox LIMIT 1').get()!.attempts,1);
+  f.db.sql.prepare('UPDATE email_outbox SET next_attempt=0').run();let count=0;
+  await flushEmails(f.db,async message=>{assert.match(message.subject,/TEST/);count++;});
+  await flushEmails(f.db,async()=>{count++;});assert.equal(count,2);
+});
+test('les modèles HTML échappent les titres non fiables',async()=>{
+  const f=fixture();await f.pay();const mail=orderEmail(f.db.read().commandes[0],'<img src=x onerror=alert(1)>','achat',false);
+  assert.ok(!mail.htmlContent.includes('<img'));assert.match(mail.htmlContent,/&lt;img/);
+});
+
+test('le worker attend 48 h et ne verse jamais une commande en litige',async()=>{
+  const f=fixture();const {commandeId:id}=await f.pay();await f.db.run(s=>webhook(f.db,s,f.paidEvent(id),f.stripe));
+  await f.db.run(s=>{const c=s.commandes[0];c.mode='colissimo';c.statut='livre';c.liberableLe=new Date(Date.now()+3600_000).toISOString();});
+  await settleDueOrders(f.db,f.stripe);assert.equal(f.transfers(),0);
+  await f.db.run(s=>{s.commandes[0].liberableLe=new Date(Date.now()-1).toISOString();s.commandes[0].litigeId='litige-test';});
+  await settleDueOrders(f.db,f.stripe);assert.equal(f.transfers(),0);
+  await f.db.run(s=>{s.commandes[0].litigeId=undefined;});
+  await settleDueOrders(f.db,f.stripe);await settleDueOrders(f.db,f.stripe);assert.equal(f.transfers(),1);
+});
+test('une livraison sans activation explicite ou avec code postal hors Réunion est refusée',async()=>{
+  const f=fixture();const input={annonceId:f.listingId,mode:'colissimo',adresse:{nomComplet:'Test Acheteur',ligne1:'12 rue de Test',codePostal:'75001',ville:'Paris',telephone:'0600000000'}};
+  process.env.SHIPPING_DRIVER='simulated';await assert.rejects(f.db.run(s=>checkout(f.db,s,f.buyer.id,input,f.stripe,'https://api.test')));
+  delete process.env.SHIPPING_DRIVER;input.adresse.codePostal='97410';await assert.rejects(f.db.run(s=>checkout(f.db,s,f.buyer.id,input,f.stripe,'https://api.test')));
+  assert.equal(f.db.read().commandes.length,0);
 });

@@ -19,11 +19,11 @@ export interface Transporteur {
 export const transporteurMock: Transporteur = {
   async genererEtiquette({ commandeId }) {
     await pause(800);
-    const numeroSuivi = '6A' + String(Math.floor(1e10 + Math.random() * 8e10)) + 'FR';
+    const numeroSuivi = 'TEST-' + commandeId.slice(-12).toUpperCase();
     return {
       numeroSuivi,
       // En production : PDF signé servi par l'API Liked, transmis au vendeur.
-      etiquetteUrl: `https://api.liked.re/etiquettes/${commandeId}.pdf`,
+      etiquetteUrl: 'Étiquette de démonstration — non affranchie',
     };
   },
   async suivre() {

@@ -14,7 +14,7 @@ import { useAnnonce, useMoi } from '@/store/selecteurs';
 import type { ModeRemise } from '@/types';
 
 export default function Paiement() {
-  const { id, prix } = useLocalSearchParams<{ id: string; prix?: string }>();
+  const { id, prix, mode: modeInitial } = useLocalSearchParams<{ id: string; prix?: string; mode?: string }>();
   const annonce = useAnnonce(id);
   const moi = useMoi();
   const passerCommande = useLiked((e) => e.passerCommande);
@@ -23,12 +23,12 @@ export default function Paiement() {
   const prixNegocieCents = prix ? Number(prix) : undefined;
   const prixCents = prixNegocieCents ?? annonce?.prixCents ?? 0;
 
-  const [mode, setMode] = useState<ModeRemise>(annonce?.accepteMainPropre ? 'main_propre' : 'colissimo');
+  const [mode, setMode] = useState<ModeRemise>(modeInitial === 'colissimo' ? 'colissimo' : annonce?.accepteMainPropre ? 'main_propre' : 'colissimo');
   const [nomComplet, setNomComplet] = useState(moi?.pseudo ?? '');
-  const [ligne1, setLigne1] = useState('');
-  const [codePostal, setCodePostal] = useState('974');
+  const [ligne1, setLigne1] = useState(MODE_DEMO ? '12 rue de Test' : '');
+  const [codePostal, setCodePostal] = useState(MODE_DEMO ? '97410' : '974');
   const [ville, setVille] = useState(moi?.commune ?? '');
-  const [telephone, setTelephone] = useState(moi?.telephone ?? '');
+  const [telephone, setTelephone] = useState(moi?.telephone ?? (MODE_DEMO ? '0692000000' : ''));
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string>();
 
@@ -62,7 +62,7 @@ export default function Paiement() {
     });
     setEnCours(false);
     if (!resultat.ok) return setErreur(resultat.erreur);
-    router.replace(`/commande/${resultat.commandeId}`);
+    if (MODE_DEMO || Platform.OS !== 'web') router.replace(`/commande/${resultat.commandeId}`);
   };
 
   return (
@@ -100,8 +100,8 @@ export default function Paiement() {
                 actif={mode === 'colissimo'}
                 onPress={() => setMode('colissimo')}
                 icone="cube-outline"
-                titre="Envoi Colissimo"
-                detail={`Gabarit ${LIBELLES_GABARIT[annonce.gabarit].nom.toLowerCase()} · suivi inclus`}
+                titre="Livraison de test"
+                detail={`Gabarit ${LIBELLES_GABARIT[annonce.gabarit].nom.toLowerCase()} · transport simulé`}
                 // Toujours le forfait du gabarit : `panier` reflète le mode
                 // sélectionné et affichait 0 € tant que la main propre était choisie.
                 prix={euros(FORFAITS_PORT_CENTS[annonce.gabarit])}

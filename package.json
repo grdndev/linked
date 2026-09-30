@@ -12,7 +12,9 @@
     "web": "expo start --web",
     "api": "npm --prefix server run dev",
     "test": "npm --prefix server test",
-    "export": "expo export --platform all"
+    "export": "expo export --platform all",
+    "postexport": "node scripts/prepare-web.mjs",
+    "build:web": "expo export --platform web && node scripts/prepare-web.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/outfit": "^0.4.1",

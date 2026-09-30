@@ -48,6 +48,8 @@ export interface PrestatairePaiement {
 }
 
 /** Driver local : reproduit les états du PSP sans appel réseau. */
+let refuseNext = false;
+export function refuserProchainPaiement() { refuseNext = true; }
 export const pspMock: PrestatairePaiement = {
   async creerIntentionPaiement({ commandeId }) {
     await pause(450);
@@ -55,6 +57,7 @@ export const pspMock: PrestatairePaiement = {
   },
   async confirmerPaiement() {
     await pause(900);
+    if (refuseNext) { refuseNext = false; return {ok:false,motif:'Carte refusée (scénario de test). Aucun montant débité.'}; }
     return { ok: true };
   },
   async sequestrer() {

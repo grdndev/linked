@@ -1,15 +1,15 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { CONFIG } from './config';
-// Native: Keychain / Keystore. Web preview: memory only, never localStorage.
+// Native: Keychain / Keystore. Web: tab-scoped session survives Stripe redirects.
 let session: string | null = null;
 const SESSION_KEY = 'liked.api.session';
 export async function restoreSession() {
-  session = Platform.OS === 'web' ? null : await SecureStore.getItemAsync(SESSION_KEY);
+  session = Platform.OS === 'web' ? sessionStorage.getItem(SESSION_KEY) : await SecureStore.getItemAsync(SESSION_KEY);
 }
 export async function setSession(value: string | null) {
   session = value;
-  if (Platform.OS === 'web') return;
+  if (Platform.OS === 'web') { if (value) sessionStorage.setItem(SESSION_KEY,value); else sessionStorage.removeItem(SESSION_KEY); return; }
   if (value) await SecureStore.setItemAsync(SESSION_KEY,value);
   else await SecureStore.deleteItemAsync(SESSION_KEY);
 }

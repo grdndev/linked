@@ -23,6 +23,8 @@ export class Database {
       CREATE TABLE IF NOT EXISTS payment_data (order_id TEXT PRIMARY KEY, checkout_id TEXT, payment_intent TEXT, charge_id TEXT, transfer_id TEXT, code TEXT, code_attempts INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE IF NOT EXISTS accounts (user_id TEXT PRIMARY KEY, stripe_id TEXT NOT NULL UNIQUE);
       CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY);
+      CREATE TABLE IF NOT EXISTS refunds (order_id TEXT PRIMARY KEY, stripe_id TEXT NOT NULL, status TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS email_outbox (id TEXT PRIMARY KEY, user_id TEXT NOT NULL, payload TEXT NOT NULL, attempts INTEGER NOT NULL DEFAULT 0, next_attempt INTEGER NOT NULL, sent_at INTEGER, last_error TEXT);
       CREATE TABLE IF NOT EXISTS uploads (url TEXT PRIMARY KEY, user_id TEXT NOT NULL);`);
     this.sql.prepare('INSERT OR IGNORE INTO marketplace VALUES (1, ?)').run(JSON.stringify(emptyState()));
   }

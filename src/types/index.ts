@@ -133,6 +133,7 @@ export type StatutCommande =
   | 'livre'
   | 'litige'
   | 'finalisee'
+  | 'remboursement_en_cours'
   | 'remboursee'
   | 'annulee';
 

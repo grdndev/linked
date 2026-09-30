@@ -731,7 +731,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
 
     async genererEtiquette(commandeId) {
       const commande = get().commandes.find((c) => c.id === commandeId);
-      if (!commande || !commande.adresseLivraison) return;
+      if (!commande || !commande.adresseLivraison || commande.vendeurId !== moi()?.id || commande.statut !== 'sequestre' || commande.mode !== 'colissimo') return;
       const annonce = get().annonces.find((a) => a.id === commande.annonceId);
       const vendeur = get().utilisateurs.find((u) => u.id === commande.vendeurId);
       const { numeroSuivi, etiquetteUrl } = await transporteur.genererEtiquette({
@@ -757,7 +757,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
 
     marquerExpedie(commandeId) {
       const commande = get().commandes.find((c) => c.id === commandeId);
-      if (!commande?.numeroSuivi) return;
+      if (!commande?.numeroSuivi || commande.vendeurId !== moi()?.id || commande.statut !== 'etiquette_emise') return;
       patcherCommande(
         commandeId,
         {
@@ -775,7 +775,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
 
     simulerLivraison(commandeId) {
       const commande = get().commandes.find((c) => c.id === commandeId);
-      if (!commande) return;
+      if (!commande || commande.vendeurId !== moi()?.id || commande.statut !== 'expedie') return;
       const livreeLe = maintenant();
       // Fonds libérés 48 h après la livraison confirmée, sauf litige (§4.6).
       const liberableLe = new Date(Date.now() + DELAI_LIBERATION_MS).toISOString();
@@ -800,7 +800,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
 
     async validerCodeRemise(commandeId, code) {
       const commande = get().commandes.find((c) => c.id === commandeId);
-      if (!commande) return { ok: false, erreur: 'Commande introuvable.' };
+      if (!commande || commande.vendeurId !== moi()?.id) return { ok: false, erreur: 'Commande introuvable.' };
       if (commande.statut !== 'sequestre') return { ok: false, erreur: 'Cette commande n’attend pas de code.' };
       if (commande.codeRemise !== code.trim()) return { ok: false, erreur: 'Code incorrect. Vérifie avec l’acheteur.' };
       patcherCommande(commandeId, { statut: 'livre', livreeLe: maintenant() }, 'Code de remise validé');
@@ -844,7 +844,7 @@ export const useLiked = create<EtatLiked>()((set, get) => {
 
     async annulerCommande(commandeId, motif) {
       const commande = get().commandes.find((c) => c.id === commandeId);
-      if (!commande) return;
+      if (!commande || ![commande.acheteurId,commande.vendeurId].includes(moi()?.id || '') || !['sequestre','etiquette_emise'].includes(commande.statut)) throw new Error('Annulation impossible à cette étape.');
       await psp.rembourser({ sequestreId: commande.id, montantCents: commande.totalCents, motif });
       patcherCommande(commandeId, { statut: 'remboursee' }, 'Commande annulée et remboursée', motif);
       set((e) => ({

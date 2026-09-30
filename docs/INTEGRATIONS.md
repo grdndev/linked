@@ -35,7 +35,7 @@ Aucun `.env` réel n’est livré. Les mots de passe de connexion ne doivent pas
 
 Le serveur appelle `POST https://api.brevo.com/v3/smtp/email` pour un code aléatoire à six chiffres, valable dix minutes. Le code n’est jamais renvoyé au mobile ni journalisé. Un renvoi impose une minute d’attente ; cinq erreurs bloquent le code. Chaque e-mail normalisé possède son propre compteur. Des limites par IP complètent ces contrôles.
 
-Configurer un expéditeur validé, idéalement un domaine authentifié. Les e-mails métier (vente, nouveau message, évaluation) et les notifications push distantes restent à implémenter ; seule la notification interne à l’application est disponible pour les événements câblés.
+Configurer un expéditeur validé, idéalement un domaine authentifié. Les confirmations de paiement, expédition, livraison, remboursement et versement sont placées dans une file SQLite atomique avec la commande. Un worker les envoie toutes les 15 secondes avec relances espacées (8 essais maximum). Les erreurs n’annulent jamais un paiement. Les messages sont préfixés [TEST]. Le journal de l’atelier montre les envois propres à l’utilisateur. Les e-mails de messagerie/évaluation et les push distants restent à développer. Une réponse Brevo positive prouve l’acceptation, pas la livraison en boîte de réception. Un crash après acceptation et avant enregistrement peut causer un doublon.
 
 Documentation : https://developers.brevo.com/docs/send-a-transactional-email
 
@@ -43,7 +43,7 @@ Documentation : https://developers.brevo.com/docs/send-a-transactional-email
 
 1. Activer Connect dans l’environnement test de Stripe.
 2. Configurer la clé secrète de test côté serveur.
-3. Créer un webhook `POST /webhooks/stripe`, événements `checkout.session.completed` et `checkout.session.expired`.
+3. Créer un webhook `POST /webhooks/stripe`, événements `checkout.session.completed`, `checkout.session.expired`, `refund.created`, `refund.updated` et `refund.failed`.
 4. Pour la recette locale : `stripe listen --forward-to localhost:3001/webhooks/stripe` puis copier son secret dans `server/.env`.
 5. Créer deux utilisateurs réels de recette dans Liked, vérifier leurs e-mails.
 6. Depuis le profil vendeur, ouvrir **Mon compte vendeur → Configurer mon compte Stripe** et compléter l’onboarding Express avec des données de test Stripe.
@@ -53,7 +53,7 @@ Documentation : https://developers.brevo.com/docs/send-a-transactional-email
 
 Stripe Checkout héberge la saisie bancaire ; aucune donnée de carte ne transite par l’API. La page de retour ne confirme jamais le paiement. Le serveur vérifie la signature du webhook, la session, le montant, la devise et le PaymentIntent. Les transferts utilisent une clé d’idempotence et la charge source.
 
-**Ce modèle est un paiement avec transfert différé, pas une prestation juridique de séquestre.** Faire valider le modèle Connect et les conditions de conservation des fonds avec Stripe avant lancement, notamment pour les vendeurs réunionnais. Le serveur livré refuse les clés de paiement réelles. Les litiges gèlent le transfert, mais la résolution financière, les remboursements, les chargebacks et la réconciliation après incident ne sont pas encore implémentés.
+**Ce modèle est un paiement avec transfert différé, pas une prestation juridique de séquestre.** Faire valider le modèle Connect et les conditions de conservation des fonds avec Stripe avant lancement, notamment pour les vendeurs réunionnais. Le serveur livré refuse les clés de paiement réelles. Les litiges gèlent le transfert. Le remboursement intégral avant expédition ou remise est implémenté, avec idempotence et rapprochement du statut Stripe. Les remboursements après versement au vendeur, les remboursements partiels, la résolution financière des litiges et les chargebacks restent à implémenter. Le worker rapproche les remboursements en cours et verse les commandes livrées depuis 48 h hors litige.
 
 Documentation : https://docs.stripe.com/connect/separate-charges-and-transfers
 
@@ -67,4 +67,8 @@ Le profil EAS `production` exige une URL d’API publique ; il ne suffit pas à 
 
 ## Colissimo
 
-Les prix du brief (4,50 / 5,50 / 7 €) restent ceux de la démonstration. Côté serveur, tout checkout Colissimo retourne une indisponibilité explicite. Restent nécessaires : contrat, credentials La Poste, étiquettes, suivi fiable, tâche serveur après livraison +48 h, litiges et annulations.
+Les prix du brief (4,50 / 5,50 / 7 €) restent ceux de la démonstration. Le serveur accepte les livraisons uniquement avec `SHIPPING_DRIVER=simulated`. Le vendeur simule l’étiquette (numéro TEST, aucun PDF postal), le dépôt et la livraison. L’acheteur confirme la réception ou ouvre un litige ; le worker libère après 48 h sinon. Aucun appel La Poste n’est effectué. Pour un transport réel : contrat, credentials, affranchissement et suivi fiable restent nécessaires.
+
+## Hébergement de l’API
+
+Le Dockerfile utilise Node 22 et expose le port 3001. Monter un volume persistant sur `/data`, injecter `server/.env` via le gestionnaire de secrets du serveur, configurer les URL HTTPS et démarrer une seule instance. Le serveur doit rester actif pour le worker. Le lien Sites de démonstration héberge uniquement le frontend en mode mock ; il ne déploie pas cette API Node/SQLite.

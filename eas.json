@@ -21,6 +21,14 @@
         "EXPO_PUBLIC_API_DRIVER": "http"
       },
       "channel": "production"
+    },
+    "testflight": {
+      "distribution": "store",
+      "autoIncrement": true,
+      "channel": "testflight",
+      "env": {
+        "EXPO_PUBLIC_API_DRIVER": "mock"
+      }
     }
   },
   "submit": {

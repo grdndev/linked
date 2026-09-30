@@ -10,7 +10,7 @@ import { Database } from './database';
 import { check, code, digest, equal, HttpError, requireUser, snapshot, token } from './security';
 import { command, newUser, registration, uid } from './domain';
 import { sendCode, stripeClient } from './providers';
-import { checkout, handover, onboarding, webhook } from './payments';
+import { checkout, handover, onboarding, webhook, refundOrder, shipping } from './payments';
 
 export function createApp(db: Database, config: { secret: string; apiUrl: string; returnUrl: string; webOrigin: string; uploadDir: string }, mailer = sendCode) {
   const app = express(); app.disable('x-powered-by');
@@ -97,7 +97,6 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
   });
   app.post('/checkout',async (req,res) => res.json(await db.run(async s => {
     const u = requireUser(s,sessionUser(req));
-    if (req.body.mode !== 'main_propre') throw new HttpError(503,'Colissimo n’est pas encore raccordé. Choisis la remise en main propre.');
     const result = await checkout(db,s,u.id,req.body,stripeClient(),config.apiUrl);
     return { ...result, state: snapshot(s,u.id) };
   })));
@@ -105,6 +104,24 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
     const u = requireUser(s,sessionUser(req));
     const result = await handover(db,s,u.id,String(req.params.id),z.string().max(4).parse(req.body.code),stripeClient());
     return { ...result, state: snapshot(s,u.id) };
+  })));
+  app.get('/test/status',(_req,res) => res.json({ stripe: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'configured' : 'missing', brevo: process.env.BREVO_API_KEY && process.env.BREVO_SENDER_EMAIL ? 'configured' : 'missing', shipping: process.env.SHIPPING_DRIVER === 'simulated' ? 'simulated' : 'disabled' }));
+  app.get('/emails',async (req,res) => res.json(await db.run(s => {
+    const u = requireUser(s,sessionUser(req));
+    return db.sql.prepare('SELECT id,payload,attempts,sent_at,last_error FROM email_outbox WHERE user_id=? ORDER BY rowid DESC LIMIT 50').all(u.id).map(row => {
+      const payload = JSON.parse(String(row.payload));
+      return {id:row.id,subject:payload.subject,textContent:payload.textContent,status:row.sent_at?'accepted':row.attempts===8?'failed':'pending'};
+    });
+  })));
+  app.post('/orders/:id/refund',async (req,res) => res.json(await db.run(async s => {
+    const u = requireUser(s,sessionUser(req));
+    const result = await refundOrder(db,s,u.id,String(req.params.id),stripeClient());
+    return {...result,state:snapshot(s,u.id)};
+  })));
+  app.post('/orders/:id/shipping',async (req,res) => res.json(await db.run(async s => {
+    const u = requireUser(s,sessionUser(req)); const action = z.enum(['label','ship','deliver','receive']).parse(req.body.action);
+    const result = await shipping(db,s,u.id,String(req.params.id),action,action==='receive'?stripeClient():undefined);
+    return {...result,state:snapshot(s,u.id)};
   })));
   app.post('/connect/onboarding',async (req,res) => res.json(await db.run(s => onboarding(db,s,requireUser(s,sessionUser(req)).id,stripeClient(),config.apiUrl))));
   app.get('/payment-return',(_req,res) => {

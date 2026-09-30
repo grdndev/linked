@@ -1,35 +1,16 @@
 import { Alert, Platform } from 'react-native';
+import { create } from 'zustand';
 
-/**
- * `Alert.alert` n'a aucun effet sur le web : les boutons ne s'affichent pas et
- * les actions de confirmation restent silencieusement inertes. On retombe donc
- * sur les boîtes natives du navigateur.
- */
-export function alerter(titre: string, message?: string) {
-  if (Platform.OS === 'web') {
-    window.alert(message ? `${titre}\n\n${message}` : titre);
-    return;
-  }
-  Alert.alert(titre, message);
+type Dialogue = { titre:string; message?:string; confirmation?:string; destructif?:boolean; resoudre?:(value:boolean)=>void };
+export const useDialogues = create<{queue:Dialogue[];fermer:(value:boolean)=>void}>((set,get)=>({
+  queue:[], fermer(value) { const current=get().queue[0]; set({queue:get().queue.slice(1)}); current?.resoudre?.(value); },
+}));
+function ajouter(dialogue:Dialogue) { useDialogues.setState(s=>({queue:[...s.queue,dialogue]})); }
+export function alerter(titre:string,message?:string) {
+  if(Platform.OS==='web') ajouter({titre,message});
+  else Alert.alert(titre,message);
 }
-
-export async function confirmer(
-  titre: string,
-  message: string,
-  libelleConfirmation = 'Confirmer',
-  destructif = false,
-): Promise<boolean> {
-  if (Platform.OS === 'web') {
-    return window.confirm(`${titre}\n\n${message}`);
-  }
-  return new Promise((resoudre) => {
-    Alert.alert(titre, message, [
-      { text: 'Annuler', style: 'cancel', onPress: () => resoudre(false) },
-      {
-        text: libelleConfirmation,
-        style: destructif ? 'destructive' : 'default',
-        onPress: () => resoudre(true),
-      },
-    ]);
-  });
+export async function confirmer(titre:string,message:string,confirmation='Confirmer',destructif=false):Promise<boolean> {
+  if(Platform.OS==='web') return new Promise(resoudre=>ajouter({titre,message,confirmation,destructif,resoudre}));
+  return new Promise(resoudre=>Alert.alert(titre,message,[{text:'Annuler',style:'cancel',onPress:()=>resoudre(false)},{text:confirmation,style:destructif?'destructive':'default',onPress:()=>resoudre(true)}],{cancelable:true,onDismiss:()=>resoudre(false)}));
 }
