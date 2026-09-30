@@ -145,6 +145,7 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
   })));
   app.post('/connect/onboarding',async (req,res) => res.json(await db.run(s => onboarding(db,s,requireUser(s,sessionUser(req)).id,stripeClient(),config.apiUrl))));
   app.get('/payment-return',(_req,res) => {
+    if (/^https?:\/\//.test(config.returnUrl)) { res.redirect(303,config.returnUrl); return; }
     const url = config.returnUrl.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;');
     res.type('html').send(`<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Liked — retour</title><body><h1>Retour à Liked</h1><p>Tu peux fermer cette page. La commande sera mise à jour après confirmation de Stripe.</p><a href="${url}">Ouvrir l’application</a></body></html>`);
   });

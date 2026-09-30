@@ -35,11 +35,11 @@ Accueil éditorial, nouvelle page de bienvenue, navigation visiteur, catalogue c
 - Vérification navigateur au format 390 × 844 : accueil, catalogue visiteur, connexion démo, fiche article, panier, commande et code de remise ; atelier de recette, livraison simulée, changement de rôle, remboursement confirmé, carte refusée et aperçus d’e-mails.
 - Export Expo iOS (Hermes), Android (Hermes) et web réussi. Cela valide les bundles, pas la signature ni une installation sur appareil réel.
 
-Clés Stripe test et Brevo configurées dans le serveur privé. Un paiement technique sandbox de 1 € et son remboursement ont réussi. Un e-mail technique Brevo est confirmé livré au testeur. Le webhook de test est configuré. Stripe Connect reste à activer : le parcours complet achat → webhook → e-mails de commande → transfert vendeur n’est pas encore vérifié avec les prestataires. Aucun paiement réel ni colis réel.
+Clés Stripe test et Brevo configurées dans le serveur privé. Un paiement technique sandbox de 1 € et son remboursement ont réussi. Un e-mail technique Brevo est confirmé livré au testeur. Le webhook de test est configuré. Stripe Connect est actif dans le bac à sable : achat → webhook → livraison simulée → transfert vendeur et achat → remboursement ont été vérifiés avec Stripe. Brevo confirme la livraison de tous les e-mails de ces parcours au testeur. Aucun paiement réel ni colis réel.
 
 ## Prochaine recette
 
-Activer Connect et préparer son vendeur de test, effectuer une transaction complète entre deux utilisateurs sur deux appareils, tester les erreurs prestataires et retours 3DS, puis compléter les fonctions serveur manquantes listées ci-dessus. Les photos de preuve de litige doivent être privées avant utilisation avec des données personnelles réelles.
+Effectuer la recette sur deux appareils réels avec deux utilisateurs, tester les erreurs prestataires et retours 3DS, puis compléter les fonctions serveur manquantes listées ci-dessus. Les photos de preuve de litige doivent être privées avant utilisation avec des données personnelles réelles.
 
 ## Partage iPhone
 

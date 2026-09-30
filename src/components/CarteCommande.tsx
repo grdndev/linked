@@ -28,7 +28,7 @@ export function CarteCommande({ commande, role }: { commande: Commande; role: 'a
   const etat = ETATS[commande.statut];
 
   return (
-    <Pressable onPress={() => router.push(`/commande/${commande.id}`)} style={styles.carte}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Ouvrir la commande ${commande.reference} · ${etat.libelle}`} onPress={() => router.push(`/commande/${commande.id}`)} style={styles.carte}>
       {annonce ? <Image source={{ uri: annonce.photos[0] }} style={styles.vignette} contentFit="cover" /> : null}
       <View style={{ flex: 1, gap: 4 }}>
         <Texte variante="corps" numberOfLines={1}>{annonce?.titre ?? 'Article'}</Texte>

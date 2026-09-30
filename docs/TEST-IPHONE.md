@@ -6,7 +6,7 @@ Lien : https://liked-beta-reunion.jayan-codialis.chatgpt.site
 
 Accès au site réservé au propriétaire et au testeur pouniandy.kylian@outlook.fr. Ouvrir l’invitation avec cette adresse, puis le lien dans Safari. Utiliser Partager → Sur l’écran d’accueil pour ajouter Liked. Cette version est une application web issue du même projet React Native ; aucun binaire TestFlight n’a été distribué.
 
-Dans Liked, créer le compte avec l’adresse invitée, le pseudonyme et la commune. Le code de connexion arrive par Brevo, expire après dix minutes et n’est utilisable qu’une fois. Le serveur autorise uniquement l’adresse du testeur et celle du compte Liked.
+Dans Liked, choisir « Connexion » : le compte Kylian Test est déjà prêt avec l’adresse invitée. Le code de connexion arrive par Brevo, expire après dix minutes et n’est utilisable qu’une fois. Le serveur autorise uniquement l’adresse du testeur et celle du compte Liked.
 
 ## État de la recette — 30 septembre 2026
 
@@ -14,10 +14,14 @@ Dans Liked, créer le compte avec l’adresse invitée, le pseudonyme et la comm
 - Expéditeur Brevo actif ; un e-mail technique a été confirmé livré par Brevo au testeur.
 - Webhook Stripe de test configuré sur le serveur HTTPS.
 - Catalogue de douze articles fictifs, aucune marchandise réelle.
-- **Stripe Connect reste à activer.** Les parcours d’achat et de versement complets ne sont pas encore validés avec les prestataires. L’atelier affiche cette limite et ne propose ses scénarios qu’une fois un vendeur Connect de test configuré.
+- Stripe Connect actif : vendeur fictif prêt et lien d’onboarding Express vérifié. Compatibilité Accounts v1 activée uniquement dans le bac à sable.
+- Achat de 30,20 € fictifs puis remboursement intégral confirmés (LK-45E3E64B).
+- Achat avec livraison de 35,70 € fictifs, webhook, préparation, expédition, livraison et transfert test de 28 € au vendeur confirmés (LK-656EA535).
+- Brevo confirme la livraison au testeur des e-mails de connexion, achat, remboursement, expédition, livraison et fin de transaction.
+- 27 tests automatisés passent ; contrôles TypeScript application/serveur et export web réussis.
 - Livraison entièrement simulée, aucun affranchissement ou colis réel.
 
-## Parcours après activation de Connect
+## Parcours à essayer
 
 Depuis l’atelier, lancer un achat avec remise ou livraison. Carte acceptée : 4242 4242 4242 4242 ; date future ; CVC de trois chiffres. Carte refusée : 4000 0000 0000 0002. Ne pas utiliser de carte réelle.
 

@@ -31,3 +31,7 @@ Les autres commandes sont refusées (501), notamment virements locaux, validatio
 ## Atelier privé
 
 BETA_ALLOWED_EMAILS limite OTP, vérification et sessions aux adresses invitées. BETA_SELLER_STRIPE_ID active les scénarios pour un compte Connect de test prêt. POST /test/listing prépare un article fictif. POST /test/orders/:id accepte label, ship, deliver ou handover (avec code) uniquement pour une commande du testeur connecté et du vendeur fictif dédié. Aucun changement de rôle général. Hors sandbox ou sans invitation, ces endpoints refusent l’action. Le script server/scripts/seed-beta.ts peuple le catalogue fictif de façon idempotente.
+
+### Compatibilité Stripe du bac à sable
+
+L’intégration Express utilise Accounts v1 ; sa politique de compatibilité est activée dans le Dashboard de test. La création d’un compte fictif et de son lien d’onboarding est vérifiée. Les informations personnelles et l’acceptation du contrat restent à compléter par le vendeur chez Stripe. Réévaluer Accounts v2 avant le passage en production.
