@@ -31,7 +31,7 @@ Configurer les variables de [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md), puis :
 npm run api
 ```
 
-Dans `.env` à la racine, définir `EXPO_PUBLIC_API_DRIVER=http` et `EXPO_PUBLIC_API_URL`. Redémarrer Expo. Le serveur démarre avec une base vide et ne charge jamais les comptes de démonstration. Les sessions natives sont conservées dans Keychain/Keystore ; la prévisualisation web garde son jeton uniquement en mémoire.
+Dans `.env` à la racine, définir `EXPO_PUBLIC_API_DRIVER=http` et `EXPO_PUBLIC_API_URL`. Redémarrer Expo. Le serveur démarre avec une base vide et ne charge jamais les comptes de démonstration. Les sessions natives sont conservées dans Keychain/Keystore ; la prévisualisation web garde son jeton dans sessionStorage, limité à l’onglet et conservé au retour de Stripe.
 
 Les mots de passe des comptes Stripe, Brevo et Apple ne sont pas des clés API. Aucun identifiant fourni dans la conversation n’est enregistré dans le dépôt.
 

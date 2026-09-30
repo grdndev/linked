@@ -1,13 +1,13 @@
 # Avant ouverture publique
 
-Cette livraison est une bêta et refuse les clés Stripe réelles. Aucun déploiement de production ni publication App Store / Play Store n’a été effectué.
+Cette livraison est une bêta et refuse les clés Stripe réelles. Une démonstration web en mode mock est hébergée ; aucune API de production ni publication App Store / Play Store n’a été effectuée.
 
 ## Prérequis techniques
 
 - Recette Stripe Connect dans la région et les pays applicables ; frais, chargebacks et responsabilités validés.
-- Résolution de litiges, remboursements, annulations, rapprochement Stripe/BDD et récupération après crash.
+- Résolution de litiges, remboursements après transfert et partiels, rapprochement exhaustif Stripe/BDD et récupération après crash. Le remboursement intégral avant envoi/remise est livré.
 - Stockage privé de preuves de litige ; conservation limitée, purge des uploads orphelins et quotas de stockage.
-- API Colissimo réelle, suivi vérifié côté serveur et tâche de libération après 48 h.
+- API Colissimo réelle et suivi vérifié côté serveur. La tâche de versement à 48 h est livrée pour la simulation.
 - Export et effacement RGPD, conservation DAC7, procédure d’administration et journalisation.
 - E-mails métier, push, alertes de recherche, contre-offres, synchronisation KYC.
 - Hébergement UE, HTTPS, sauvegardes restaurées en recette, supervision et secrets serveur.

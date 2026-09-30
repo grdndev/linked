@@ -2,6 +2,8 @@
 
 ## Version navigateur
 
+Lien hébergé : https://liked-beta-reunion.jayan-codialis.chatgpt.site — accès propriétaire privé à cette livraison, en attente du choix de partage.
+
 Ouvrir le lien de la bêta dans Safari. Choisir « Essayer les parcours de test ». Ajouter Liked via Partager → Sur l’écran d’accueil si souhaité. Une connexion Internet reste nécessaire ; aucun mode hors ligne n’est promis.
 
 La version navigateur publiée fonctionne en simulation. Les essais sont enregistrés uniquement sur cet appareil. Deux personnes ne partagent pas leurs commandes. Aucun e-mail n’est envoyé et aucun appel Stripe n’est effectué dans cette version.

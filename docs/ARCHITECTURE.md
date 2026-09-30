@@ -4,7 +4,7 @@
 
 `mock` charge les données fictives et la persistance locale existantes. Tous les écrans de recette sont disponibles. `http` remplace les actions du store par des requêtes serveur, avec une base initialement vide. Il ne recharge aucune donnée locale de démonstration. Une commande non implémentée retourne HTTP 501 ; aucun simulateur ne prend le relais.
 
-Le cache mobile reste en mémoire en mode HTTP. Le jeton opaque de session est conservé via SecureStore sur iOS/Android, et seulement en mémoire sur web. Le cache est rafraîchi au retour au premier plan et toutes les quinze secondes lorsque l’application est active. Il n’y a pas encore de WebSocket ni de pagination serveur.
+Le cache mobile reste en mémoire en mode HTTP. Le jeton opaque de session est conservé via SecureStore sur iOS/Android, et dans sessionStorage (limité à l’onglet) sur web. Le cache est rafraîchi au retour au premier plan et toutes les quinze secondes lorsque l’application est active. Il n’y a pas encore de WebSocket ni de pagination serveur.
 
 ## Serveur de bêta
 
