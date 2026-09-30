@@ -2,6 +2,7 @@ import { Database } from './database';
 import { createApp } from './app';
 import { flushEmails } from './emails';
 import { settleDueOrders } from './payments';
+import { expireBoosts } from './boosts';
 import { stripeClient } from './providers';
 
 const secret = process.env.AUTH_SECRET;
@@ -20,6 +21,7 @@ const timer = setInterval(async () => {
   if (working) return;
   working = true;
   try {
+    await db.run(s=>expireBoosts(db,s));
     if (process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')) await settleDueOrders(db,stripeClient());
   } catch { console.error('Order settlement will retry.'); }
   try { if (process.env.BREVO_API_KEY) await flushEmails(db); }

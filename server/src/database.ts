@@ -21,6 +21,8 @@ export class Database {
       CREATE TABLE IF NOT EXISTS sessions (hash TEXT PRIMARY KEY, user_id TEXT NOT NULL, expires INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS codes (email TEXT PRIMARY KEY, hash TEXT NOT NULL, expires INTEGER NOT NULL, attempts INTEGER NOT NULL, sent INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS payment_data (order_id TEXT PRIMARY KEY, checkout_id TEXT, payment_intent TEXT, charge_id TEXT, transfer_id TEXT, code TEXT, code_attempts INTEGER NOT NULL DEFAULT 0);
+      CREATE TABLE IF NOT EXISTS boosts (id TEXT PRIMARY KEY, listing_id TEXT NOT NULL, user_id TEXT NOT NULL, plan TEXT NOT NULL, days INTEGER NOT NULL, amount INTEGER NOT NULL, checkout_id TEXT NOT NULL UNIQUE, checkout_url TEXT NOT NULL, payment_intent TEXT, status TEXT NOT NULL, starts_at TEXT, ends_at TEXT);
+      CREATE UNIQUE INDEX IF NOT EXISTS one_pending_boost ON boosts(listing_id) WHERE status='pending';
       CREATE TABLE IF NOT EXISTS accounts (user_id TEXT PRIMARY KEY, stripe_id TEXT NOT NULL UNIQUE);
       CREATE TABLE IF NOT EXISTS events (id TEXT PRIMARY KEY);
       CREATE TABLE IF NOT EXISTS refunds (order_id TEXT PRIMARY KEY, stripe_id TEXT NOT NULL, status TEXT NOT NULL);

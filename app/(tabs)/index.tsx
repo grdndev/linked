@@ -11,6 +11,7 @@ import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useMoi, useNotificationsNonLues } from '@/store/selecteurs';
 import type { Annonce } from '@/types';
+import { boostActif } from '@/lib/boost';
 import { useGrille } from '@/lib/grille';
 
 export default function Accueil() {
@@ -55,6 +56,8 @@ export default function Accueil() {
       return s;
     }
   }, [enLigne, favoris, annonces, moi]);
+
+  const sponsorisees = enLigne.filter(a=>boostActif(a));
 
   const pres = useMemo(() => {
     if (!moi) return [];
@@ -119,6 +122,7 @@ export default function Accueil() {
           ))}
         </ScrollView>
 
+        {sponsorisees.length>0 && <View style={{gap:space.md,marginBottom:space.lg}}><View style={styles.titreSection}><Texte variante="soustitre">À la une</Texte><Texte variante="petit">Articles sponsorisés</Texte></View><ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal:space.lg,gap:space.md}}>{sponsorisees.map(a=><CarteAnnonce key={a.id} annonce={a} largeur={largeurColonne * 0.86}/>)}</ScrollView></View>}
         {moi && pres.length > 0 ? (
           <View style={{ gap: space.md }}>
             <View style={styles.titreSection}>

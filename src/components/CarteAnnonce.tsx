@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { boostActif } from '@/lib/boost';
 import { euros, fraisProtectionCents } from '@/lib/argent';
 import { colors, radius, shadow, space, type } from '@/theme';
 import type { Annonce } from '@/types';
@@ -26,6 +27,7 @@ export function CarteAnnonce({ annonce, largeur }: { annonce: Annonce; largeur: 
           contentFit="cover"
           transition={180}
         />
+        {boostActif(annonce) && <View style={{position:'absolute',bottom:8,left:8}}><Etiquette libelle="Sponsorisé" ton="action"/></View>}
         {vendue || reservee ? (
           <View style={styles.voile}>
             <Etiquette libelle={vendue ? 'Vendu' : 'Réservé'} ton={vendue ? 'neutre' : 'alerte'} />

@@ -11,7 +11,9 @@ import { check, code, digest, equal, HttpError, requireUser, snapshot, token } f
 import { command, newUser, registration, uid } from './domain';
 import { sendCode, stripeClient } from './providers';
 import { checkout, handover, onboarding, webhook, refundOrder, shipping } from './payments';
-import { testListing, testOrder } from './testLab';
+import { boostCheckout, ownBoosts } from './boosts';
+import { BOOST_PLANS } from '../../src/lib/boost';
+import { testListing, testOrder, testBoostListing } from './testLab';
 
 export function createApp(db: Database, config: { secret: string; apiUrl: string; returnUrl: string; webOrigin: string; uploadDir: string; betaEmails?: string[] }, mailer = sendCode) {
   const app = express(); app.disable('x-powered-by');
@@ -102,6 +104,15 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
       const value = command(s,u.id,name,args); return { result: value ?? null, state: snapshot(s,u.id) };
     }); res.json(result);
   });
+  app.get('/boost/plans',(_req,res)=>res.json(BOOST_PLANS));
+  app.get('/boosts/:id',async(req,res)=>res.json(await db.run(s=>ownBoosts(db,s,requireUser(s,sessionUser(req)).id,String(req.params.id)))));
+  app.post('/boost/checkout',async(req,res)=>res.json(await db.run(s=>boostCheckout(db,s,requireUser(s,sessionUser(req)).id,req.body,stripeClient(),config.apiUrl))));
+  app.get('/boost-return',(req,res)=>{
+    const id=z.string().uuid().parse(req.query.listing);
+    const destination=/^https?:\/\//.test(config.returnUrl)?new URL(`/booster/${id}`,config.returnUrl).href:`liked://booster/${id}`;
+    if(destination.startsWith('https://') || destination.startsWith('http://')){res.redirect(303,destination);return;}
+    res.type('html').send(`<html lang="fr"><meta name="viewport" content="width=device-width,initial-scale=1"><body><h1>Retour à Liked</h1><a href="${destination}">Voir mon boost</a><p>L’activation dépend de la confirmation Stripe.</p></body></html>`);
+  });
   app.post('/checkout',async (req,res) => res.json(await db.run(async s => {
     const u = requireUser(s,sessionUser(req));
     const result = await checkout(db,s,u.id,req.body,stripeClient(),config.apiUrl);
@@ -113,6 +124,9 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
     return { ...result, state: snapshot(s,u.id) };
   })));
   app.get('/test/status',(_req,res) => res.json({ scenarios: process.env.BETA_SELLER_STRIPE_ID && config.betaEmails?.length ? 'ready' : 'pending', stripe: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'configured' : 'missing', brevo: process.env.BREVO_API_KEY && process.env.BREVO_SENDER_EMAIL ? 'configured' : 'missing', shipping: process.env.SHIPPING_DRIVER === 'simulated' ? 'simulated' : 'disabled' }));
+  app.post('/test/boost-listing',async(req,res)=>res.json(await db.run(s=>{
+    const u=requireUser(s,sessionUser(req));return {annonceId:testBoostListing(s,u.id,config.betaEmails),state:snapshot(s,u.id)};
+  })));
   app.post('/test/listing',async (req,res) => res.json(await db.run(s=>{
     const user=requireUser(s,sessionUser(req));
     return {annonceId:testListing(db,s,user.id,config.betaEmails),state:snapshot(s,user.id)};

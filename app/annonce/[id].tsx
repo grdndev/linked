@@ -187,6 +187,7 @@ export default function DetailAnnonce() {
         </View>
       </ScrollView>
 
+      {estMonAnnonce && annonce.statut==='en_ligne' && <View style={{paddingHorizontal:space.lg,paddingBottom:8}}><Bouton titre="Booster cet article" icone="flash-outline" onPress={()=>router.push(`/booster/${annonce.id}`)}/></View>}
       {/* Barre d'action */}
       <View style={[styles.barreAction, { paddingBottom: insets.bottom + space.md }]}>
         {estMonAnnonce ? (

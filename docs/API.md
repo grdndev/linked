@@ -35,3 +35,13 @@ BETA_ALLOWED_EMAILS limite OTP, vérification et sessions aux adresses invitées
 ### Compatibilité Stripe du bac à sable
 
 L’intégration Express utilise Accounts v1 ; sa politique de compatibilité est activée dans le Dashboard de test. La création d’un compte fictif et de son lien d’onboarding est vérifiée. Les informations personnelles et l’acceptation du contrat restent à compléter par le vendeur chez Stripe. Réévaluer Accounts v2 avant le passage en production.
+
+### Boosts Stripe test
+
+- GET /boost/plans : forfaits 3j (299 centimes), 7j (599 centimes).
+- POST /boost/checkout {annonceId,plan} : propriétaire uniquement, annonce en ligne ; prix recalculé serveur ; réutilise le Checkout ouvert pour le même forfait. Un boost actif interdit un second achat.
+- GET /boosts/:id : historique privé du vendeur (aucune référence Stripe exposée).
+- POST /test/boost-listing : article fictif appartenant au testeur invité, sandbox uniquement.
+- GET /boost-return?listing=UUID : retour vers l’écran du boost ; n’active aucun paiement.
+
+Table SQLite additive boosts ; activation via webhook signé avec vérification session + PaymentIntent (référence, montant, devise, mode test). Traitement et e-mails idempotents. L’expiration est évaluée aussi à l’affichage ; le worker enregistre la fin et programme l’e-mail Brevo. Un remboursement intégral confirmé retire la promotion. Aucun transfert vendeur pour l’achat d’un boost. L’intégration web de recette ne constitue pas une validation des modalités de paiement pour la future distribution native sur les stores.

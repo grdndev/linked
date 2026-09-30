@@ -18,7 +18,7 @@ Dans Liked, choisir « Connexion » : le compte Kylian Test est déjà prêt ave
 - Achat de 30,20 € fictifs puis remboursement intégral confirmés (LK-45E3E64B).
 - Achat avec livraison de 35,70 € fictifs, webhook, préparation, expédition, livraison et transfert test de 28 € au vendeur confirmés (LK-656EA535).
 - Brevo confirme la livraison au testeur des e-mails de connexion, achat, remboursement, expédition, livraison et fin de transaction.
-- 27 tests automatisés passent ; contrôles TypeScript application/serveur et export web réussis.
+- 32 tests automatisés passent ; contrôles TypeScript application/serveur et export web réussis.
 - Livraison entièrement simulée, aucun affranchissement ou colis réel.
 
 ## Parcours à essayer
@@ -38,3 +38,13 @@ Les secrets sont conservés uniquement dans le .env privé du serveur actif, jam
 ## TestFlight ultérieur
 
 Le profil EAS testflight existant est une configuration de démonstration. Avant une distribution native connectée, renseigner le driver HTTP et l’URL stable dans son environnement EAS, se connecter au compte Expo et configurer les certificats Apple Developer / App Store Connect. Aucune signature iOS ou invitation TestFlight n’a été réalisée.
+
+## Booster un article
+
+Profil → Mes annonces → Booster (ou ouvrir sa propre annonce → Booster cet article). Choisir 3 jours à 2,99 € ou 7 jours à 5,99 €, puis payer avec la carte Stripe test. La confirmation du webhook active la mise en avant dans « À la une » avec le badge Sponsorisé ; le retour du navigateur seul ne l’active jamais. Le vendeur reçoit un e-mail Brevo d’activation et, à l’échéance, de fin de boost.
+
+Pour essayer sans publier : Espace de test → Tester un boost d’article. Un article fictif est créé dans Mes annonces du compte connecté, sans modifier son âge ni son rôle.
+
+Le boost n’est pas un abonnement. Pas de renouvellement automatique ni de vente garantie. Un seul boost actif par article ; un paiement en cours se reprend sans créer un deuxième Checkout. Un article réservé, vendu, masqué ou supprimé sort des emplacements sponsorisés sans prolonger la période. S’il devient indisponible avant la confirmation du paiement, le serveur demande son remboursement. Les offres et montants sont fixés côté serveur dans src/lib/boost.ts. Ces tarifs sont uniquement ceux de la recette.
+
+Recette du boost effectuée le 30/09/2026 : achat Stripe test à 2,99 €, activation réelle par webhook pour trois jours (jusqu’au 03/10/2026 à 16:28, heure Réunion), affichage dans À la une et badge Sponsorisé vérifiés. L’expiration et l’absence de doublon sont couvertes par les tests automatisés.

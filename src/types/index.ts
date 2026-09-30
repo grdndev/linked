@@ -95,6 +95,7 @@ export interface Annonce {
   favoris: number;
   vues: number;
   signalements: number;
+  boost?: { debut: string; fin: string };
 }
 
 export type StatutOffre = 'en_attente' | 'acceptee' | 'refusee' | 'contre_proposee' | 'expiree';

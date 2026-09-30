@@ -6,6 +6,7 @@ import { calculerPanier } from '../../src/lib/argent';
 import { Database } from './database';
 import { check, HttpError, requireUser } from './security';
 import { now, uid } from './domain';
+import { boostWebhook } from './boosts';
 import { queueOrderEmails } from './emails';
 
 type Payment = { order_id: string; checkout_id: string; payment_intent: string; charge_id: string; transfer_id: string; code_attempts: number };
@@ -47,6 +48,7 @@ export async function checkout(db: Database, s: EtatPersiste, userId: string, in
 /** Signature validation happens before this handler. Checkout return URLs never mark an order as paid. */
 export async function webhook(db: Database, s: EtatPersiste, event: Stripe.Event, stripe: Stripe) {
   if (db.sql.prepare('SELECT id FROM events WHERE id=?').get(event.id)) return;
+  if (await boostWebhook(db,s,event,stripe)) { db.sql.prepare('INSERT INTO events VALUES (?)').run(event.id); return; }
   if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.expired') {
     const session = event.data.object as Stripe.Checkout.Session;
     const payment = db.sql.prepare('SELECT * FROM payment_data WHERE checkout_id=?').get(session.id) as Payment | undefined;

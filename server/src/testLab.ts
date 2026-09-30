@@ -39,3 +39,12 @@ export function testOrder(s: EtatPersiste,userId: string,orderId: string,emails?
   check(order && order.acheteurId===userId && order.vendeurId===TEST_SELLER_ID,'Commande de recette non autorisée.',403);
   return order;
 }
+
+/** Own fictional listing for invited testers; never changes their age or role. */
+export function testBoostListing(s:EtatPersiste,userId:string,emails?:string[]) {
+  requireTestLab(s,userId,emails);
+  const marker='Article fictif pour tester le boost. Aucun article réel à vendre.';
+  let a=s.annonces.find(a=>a.vendeurId===userId && a.description===marker && a.statut==='en_ligne');
+  if(!a){a={...ANNONCES_SEED[0],id:uid(),vendeurId:userId,titre:'Robe fleurie · test boost',description:marker,statut:'en_ligne',publieeLe:now(),favoris:0,vues:0,signalements:0};s.annonces.unshift(a);}
+  return a.id;
+}

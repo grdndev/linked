@@ -1,7 +1,8 @@
 import { ScrollView, View } from 'react-native';
 import { router } from 'expo-router';
 
-import { CarteAnnonce, Ecran, EnTete, Vide } from '@/components';
+import { Bouton, CarteAnnonce, Ecran, EnTete, Vide } from '@/components';
+import { boostActif } from '@/lib/boost';
 import { space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useGrille } from '@/lib/grille';
@@ -24,7 +25,7 @@ export default function MesAnnonces() {
             action="Vendre un article" onAction={() => router.push('/(tabs)/vendre')} />
         ) : (
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md }}>
-            {annonces.map((a) => <CarteAnnonce key={a.id} annonce={a} largeur={largeurColonne} />)}
+            {annonces.map((a) => <View key={a.id} style={{width:largeurColonne,gap:8}}><CarteAnnonce annonce={a} largeur={largeurColonne}/>{a.statut==='en_ligne' && <Bouton titre={boostActif(a)?'Voir mon boost':'Booster'} taille="sm" icone="flash-outline" ton={boostActif(a)?'contour':'action'} onPress={()=>router.push(`/booster/${a.id}`)}/>}</View>)}
           </View>
         )}
       </ScrollView>
