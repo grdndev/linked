@@ -27,3 +27,7 @@ Commandes câblées : `majProfil`, `majPreference`, `majProspection`, `publierAn
 Les signatures d’arguments suivent `ActionsLiked` dans `src/store/liked.ts`. Les schémas Zod serveur sont l’autorité de validation. Seuls les champs autorisés sont retenus. Les photos des annonces doivent avoir été téléversées par le même utilisateur. `incrementerVue` est un no-op, pas un compteur fiable d’audience.
 
 Les autres commandes sont refusées (501), notamment virements locaux, validation manuelle KYC, export DAC7 et résolution financière de litiges. Les clés Stripe réelles sont refusées (503).
+
+## Atelier privé
+
+BETA_ALLOWED_EMAILS limite OTP, vérification et sessions aux adresses invitées. BETA_SELLER_STRIPE_ID active les scénarios pour un compte Connect de test prêt. POST /test/listing prépare un article fictif. POST /test/orders/:id accepte label, ship, deliver ou handover (avec code) uniquement pour une commande du testeur connecté et du vendeur fictif dédié. Aucun changement de rôle général. Hors sandbox ou sans invitation, ces endpoints refusent l’action. Le script server/scripts/seed-beta.ts peuple le catalogue fictif de façon idempotente.

@@ -11,6 +11,7 @@ const db = new Database(process.env.DATABASE_PATH || './data/liked.sqlite');
 const app = createApp(db, {
   secret, apiUrl, returnUrl: process.env.APP_RETURN_URL || 'liked://mes-achats',
   webOrigin: process.env.WEB_ORIGIN || 'http://localhost:8081', uploadDir: process.env.UPLOAD_DIR || './data/uploads',
+  betaEmails: process.env.BETA_ALLOWED_EMAILS?.split(',').map(e=>e.trim().toLowerCase()).filter(Boolean),
 });
 app.listen(Number(process.env.PORT || 3001),process.env.HOST || '127.0.0.1',() => console.log('Liked API ready (Stripe test mode).'));
 

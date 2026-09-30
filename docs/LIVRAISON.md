@@ -31,15 +31,15 @@ Accueil éditorial, nouvelle page de bienvenue, navigation visiteur, catalogue c
 ## Validation
 
 - TypeScript application et serveur.
-- 26 tests métier / HTTP réussis ; Stripe et Brevo remplacés par des doubles de test.
+- 27 tests métier / HTTP réussis ; Stripe et Brevo remplacés par des doubles de test.
 - Vérification navigateur au format 390 × 844 : accueil, catalogue visiteur, connexion démo, fiche article, panier, commande et code de remise ; atelier de recette, livraison simulée, changement de rôle, remboursement confirmé, carte refusée et aperçus d’e-mails.
 - Export Expo iOS (Hermes), Android (Hermes) et web réussi. Cela valide les bundles, pas la signature ni une installation sur appareil réel.
 
-Les clés API n’étant pas configurées, aucun e-mail réel, paiement Stripe réel, onboarding vendeur réel ou envoi Colissimo n’a été exécuté. Les tentatives de connexion Stripe et Brevo ont été refusées (identifiants incorrects). Aucune clé n’a pu être configurée, aucun e-mail Brevo ni paiement Stripe de bout en bout n’a été vérifié.
+Clés Stripe test et Brevo configurées dans le serveur privé. Un paiement technique sandbox de 1 € et son remboursement ont réussi. Un e-mail technique Brevo est confirmé livré au testeur. Le webhook de test est configuré. Stripe Connect reste à activer : le parcours complet achat → webhook → e-mails de commande → transfert vendeur n’est pas encore vérifié avec les prestataires. Aucun paiement réel ni colis réel.
 
 ## Prochaine recette
 
-Configurer les clés test et un expéditeur Brevo, effectuer une transaction complète entre deux utilisateurs sur deux appareils, tester les erreurs prestataires et retours 3DS, puis compléter les fonctions serveur manquantes listées ci-dessus. Les photos de preuve de litige doivent être privées avant utilisation avec des données personnelles réelles.
+Activer Connect et préparer son vendeur de test, effectuer une transaction complète entre deux utilisateurs sur deux appareils, tester les erreurs prestataires et retours 3DS, puis compléter les fonctions serveur manquantes listées ci-dessus. Les photos de preuve de litige doivent être privées avant utilisation avec des données personnelles réelles.
 
 ## Partage iPhone
 

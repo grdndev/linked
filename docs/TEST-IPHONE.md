@@ -1,38 +1,36 @@
 # Tester Liked sur iPhone
 
-## Version navigateur
+## Accès privé
 
-Lien hébergé : https://liked-beta-reunion.jayan-codialis.chatgpt.site — accès propriétaire privé à cette livraison, en attente du choix de partage.
+Lien : https://liked-beta-reunion.jayan-codialis.chatgpt.site
 
-Ouvrir le lien de la bêta dans Safari. Choisir « Essayer les parcours de test ». Ajouter Liked via Partager → Sur l’écran d’accueil si souhaité. Une connexion Internet reste nécessaire ; aucun mode hors ligne n’est promis.
+Accès au site réservé au propriétaire et au testeur pouniandy.kylian@outlook.fr. Ouvrir l’invitation avec cette adresse, puis le lien dans Safari. Utiliser Partager → Sur l’écran d’accueil pour ajouter Liked. Cette version est une application web issue du même projet React Native ; aucun binaire TestFlight n’a été distribué.
 
-La version navigateur publiée fonctionne en simulation. Les essais sont enregistrés uniquement sur cet appareil. Deux personnes ne partagent pas leurs commandes. Aucun e-mail n’est envoyé et aucun appel Stripe n’est effectué dans cette version.
+Dans Liked, créer le compte avec l’adresse invitée, le pseudonyme et la commune. Le code de connexion arrive par Brevo, expire après dix minutes et n’est utilisable qu’une fois. Le serveur autorise uniquement l’adresse du testeur et celle du compte Liked.
 
-1. **Remise** : lancer un achat, simuler le paiement, relever le code acheteur ; revenir à l’atelier puis ouvrir la commande côté vendeur et saisir le code. Le portefeuille fictif est crédité.
-2. **Livraison** : lancer un achat avec livraison ; une adresse fictive est préremplie. Après paiement, ouvrir côté vendeur, générer l’étiquette de test, simuler le dépôt puis la livraison. Revenir côté acheteur et confirmer la réception.
-3. **Remboursement** : acheter un nouvel article puis annuler avant le dépôt. Vérifier l’état « Remboursée » et l’aperçu de l’e-mail dans l’atelier.
-4. **Refus** : lancer « Tester une carte refusée », confirmer le paiement et vérifier l’erreur sans fonds versés.
-5. **E-mails** : consulter les aperçus dans l’atelier. Ils reproduisent les contenus utilisés par le serveur Brevo et portent la mention non envoyé.
-6. **Litige** : acheter puis ouvrir un litige côté acheteur ; vérifier que la remise ou le versement ne peut plus être validé.
+## État de la recette — 30 septembre 2026
 
-## Recette Stripe test + Brevo
+- Clé Stripe sandbox configurée ; paiement technique fictif de 1 € puis remboursement réussis.
+- Expéditeur Brevo actif ; un e-mail technique a été confirmé livré par Brevo au testeur.
+- Webhook Stripe de test configuré sur le serveur HTTPS.
+- Catalogue de douze articles fictifs, aucune marchandise réelle.
+- **Stripe Connect reste à activer.** Les parcours d’achat et de versement complets ne sont pas encore validés avec les prestataires. L’atelier affiche cette limite et ne propose ses scénarios qu’une fois un vendeur Connect de test configuré.
+- Livraison entièrement simulée, aucun affranchissement ou colis réel.
 
-Le serveur doit être hébergé avec un volume persistant (Dockerfile fourni), ses secrets configurés, son URL HTTPS et son webhook Stripe accessibles. Recompiler le mobile/web avec le driver HTTP. La version publiée en simulation ne bascule pas automatiquement quand les clés sont ajoutées.
+## Parcours après activation de Connect
 
-Les e-mails Brevo de recette sont de vrais e-mails, préfixés [TEST]. Les paiements utilisent uniquement les clés Stripe `sk_test_`. Le transport reste simulé. L’atelier affiche les services configurés et l’état des e-mails de l’utilisateur connecté. « Accepté par Brevo » ne prouve pas la réception en boîte de réception.
+Depuis l’atelier, lancer un achat avec remise ou livraison. Carte acceptée : 4242 4242 4242 4242 ; date future ; CVC de trois chiffres. Carte refusée : 4000 0000 0000 0002. Ne pas utiliser de carte réelle.
 
-## Installation native avec TestFlight
+Après confirmation Stripe, revenir dans Liked. La commande ne devient payée qu’après le webhook vérifié. Les e-mails de commande portent [TEST]. Pour le vendeur fictif, des boutons dans l’atelier permettent de préparer, expédier puis livrer le colis simulé, ou de confirmer la remise. Le remboursement se demande dans la commande avant envoi ou remise. L’acheteur confirme la réception pour terminer la transaction ; un litige bloque le versement.
 
-Le profil `testflight` du fichier eas.json produit une build iOS destinée à TestFlight. Il nécessite une session Expo autorisée, le programme Apple Developer actif, les certificats et l’application App Store Connect. Le CLI Expo n’était pas connecté lors de la préparation.
+« Accepté par Brevo » dans l’atelier signifie que le prestataire a accepté l’envoi ; cela ne garantit pas le placement en boîte principale. Vérifier également les indésirables.
 
-Depuis le projet :
+## Disponibilité du serveur
 
-```sh
-eas login
-eas build --platform ios --profile testflight
-eas submit --platform ios --profile production
-```
+Le frontend est hébergé. Le serveur et sa base SQLite tournent temporairement sur le Mac, accessibles par un tunnel Cloudflare autorisé. Le Mac, le serveur et le tunnel doivent rester actifs. Un redémarrage du tunnel change son URL : il faudra mettre à jour PUBLIC_API_URL, le webhook Stripe et recompiler le frontend HTTP. Ce montage ne convient pas à la production.
 
-Ajouter ensuite le testeur dans App Store Connect → TestFlight. Le test externe nécessite la revue bêta Apple. Ne pas envoyer directement une IPA non provisionnée à un iPhone. Aucun binaire signé ni invitation TestFlight n’a été créé par cette livraison.
+Les secrets sont conservés uniquement dans le .env privé du serveur actif, jamais dans Git ni le ZIP. Pour une installation durable, utiliser le Dockerfile avec un volume persistant et une URL HTTPS stable.
 
-Références : https://docs.expo.dev/submit/testflight/ et https://docs.expo.dev/review/overview/
+## TestFlight ultérieur
+
+Le profil EAS testflight existant est une configuration de démonstration. Avant une distribution native connectée, renseigner le driver HTTP et l’URL stable dans son environnement EAS, se connecter au compte Expo et configurer les certificats Apple Developer / App Store Connect. Aucune signature iOS ou invitation TestFlight n’a été réalisée.

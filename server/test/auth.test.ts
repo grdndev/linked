@@ -10,12 +10,15 @@ import { createApp } from '../src/app';
 test('API : codes à usage unique, expiration, sessions révoquées, aucune donnée démo',async t => {
   const db=new Database(':memory:'); const dir=mkdtempSync(join(tmpdir(),'liked-api-'));
   const mailbox = new Map<string,string>();
-  const app=createApp(db,{secret:'a'.repeat(64),apiUrl:'http://localhost',returnUrl:'liked://mes-achats',webOrigin:'http://localhost:8081',uploadDir:dir},async (email,code)=>{mailbox.set(email,code);});
+  const app=createApp(db,{secret:'a'.repeat(64),apiUrl:'http://localhost',returnUrl:'liked://mes-achats',webOrigin:'http://localhost:8081',uploadDir:dir,betaEmails:['person@example.test']},async (email,code)=>{mailbox.set(email,code);});
   const server=app.listen(0,'127.0.0.1'); await new Promise<void>(resolve=>server.once('listening',resolve));
   t.after(()=>{server.close(); db.sql.close(); rmSync(dir,{recursive:true,force:true});});
   const base=`http://127.0.0.1:${(server.address() as AddressInfo).port}`;
   const post=(path:string,body:unknown,token?:string)=>fetch(base+path,{method:'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:`Bearer ${token}`}:{})},body:JSON.stringify(body)});
   const email='person@example.test';
+  assert.equal((await post('/auth/code',{email:'uninvited@example.test'})).status,403);
+  assert.equal((await post('/auth/verify',{email:'uninvited@example.test',code:'123456'})).status,403);
+  assert.equal(mailbox.size,0);
   const initial=await (await fetch(base+'/state')).json(); assert.deepEqual(initial.utilisateurs,[]);
   assert.equal((await post('/commands/publierAnnonce',{args:[]})).status,401);
   assert.equal((await post('/auth/code',{email})).status,200);

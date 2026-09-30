@@ -1,6 +1,6 @@
 # Avant ouverture publique
 
-Cette livraison est une bêta et refuse les clés Stripe réelles. Une démonstration web en mode mock est hébergée ; aucune API de production ni publication App Store / Play Store n’a été effectuée.
+Cette livraison est une bêta et refuse les clés Stripe réelles. Une bêta web connectée à une API locale par tunnel temporaire est hébergée ; aucune API de production ni publication App Store / Play Store n’a été effectuée.
 
 ## Prérequis techniques
 

@@ -1,5 +1,5 @@
 import { Dialogues } from '@/components/Dialogues';
-import { AppState } from 'react-native';
+import { ActivityIndicator, AppState, Text, View } from 'react-native';
 import { MODE_DEMO } from '@/services/config';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
@@ -50,7 +50,7 @@ export default function DispositionRacine() {
     return () => clearInterval(minuteur);
   }, [libererFondsSiEchu]);
 
-  if (!policesPretes || !pret) return null;
+  if (!policesPretes || !pret) return <View style={{flex:1,alignItems:'center',justifyContent:'center',gap:16,backgroundColor:colors.sable}}><Text style={{fontSize:38,fontWeight:'700',color:colors.encre}}>liked.</Text><ActivityIndicator color={colors.corail}/><Text style={{color:colors.encre}}>Préparation de ton espace…</Text></View>;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

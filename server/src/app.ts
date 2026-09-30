@@ -11,9 +11,12 @@ import { check, code, digest, equal, HttpError, requireUser, snapshot, token } f
 import { command, newUser, registration, uid } from './domain';
 import { sendCode, stripeClient } from './providers';
 import { checkout, handover, onboarding, webhook, refundOrder, shipping } from './payments';
+import { testListing, testOrder } from './testLab';
 
-export function createApp(db: Database, config: { secret: string; apiUrl: string; returnUrl: string; webOrigin: string; uploadDir: string }, mailer = sendCode) {
+export function createApp(db: Database, config: { secret: string; apiUrl: string; returnUrl: string; webOrigin: string; uploadDir: string; betaEmails?: string[] }, mailer = sendCode) {
   const app = express(); app.disable('x-powered-by');
+  // Only the local reverse proxy may supply client forwarding headers.
+  app.set('trust proxy','loopback');
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use((req,res,next) => {
     if (req.headers.origin === config.webOrigin) {
@@ -41,10 +44,13 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
     if (!authorization) return null;
     check(/^Bearer [a-f0-9]{64}$/.test(authorization),'Session invalide.',401);
     const row = db.sql.prepare('SELECT user_id FROM sessions WHERE hash=? AND expires>?').get(digest(authorization.slice(7),config.secret),Date.now()) as { user_id: string } | undefined;
-    check(row,'Session expirée. Reconnecte-toi.',401); return row.user_id;
+    check(row,'Session expirée. Reconnecte-toi.',401);
+    if (config.betaEmails?.length) check(config.betaEmails.includes(db.read().utilisateurs.find(u=>u.id===row.user_id)?.email || ''),'Accès réservé aux testeurs invités.',403);
+    return row.user_id;
   };
   app.post('/auth/code',rateLimit({ windowMs: 600_000, limit: 10, message: { erreur: 'Trop de demandes de code. Réessaie plus tard.' } }),async (req,res) => {
     const email = emailSchema.parse(req.body.email);
+    check(!config.betaEmails?.length || config.betaEmails.includes(email),'Cette bêta est réservée aux adresses invitées.',403);
     await db.run(async () => {
       const old = db.sql.prepare('SELECT sent FROM codes WHERE email=?').get(email) as { sent: number } | undefined;
       check(!old || Date.now()-old.sent >= 60_000,'Attends une minute avant de demander un autre code.',429);
@@ -56,6 +62,7 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
   });
   app.post('/auth/verify',rateLimit({ windowMs: 600_000, limit: 30, message: { erreur: 'Trop de tentatives. Réessaie plus tard.' } }),async (req,res) => {
     const data = z.object({ email: emailSchema, code: z.string().regex(/^\d{6}$/), profile: registration.optional() }).parse(req.body);
+    check(!config.betaEmails?.length || config.betaEmails.includes(data.email),'Cette bêta est réservée aux adresses invitées.',403);
     const result = await db.run(s => {
       const stored = db.sql.prepare('SELECT * FROM codes WHERE email=?').get(data.email) as { hash: string; attempts: number; expires: number } | undefined;
       if (!stored || stored.expires < Date.now() || stored.attempts >= 5) return { erreur: 'Code expiré ou bloqué. Demande un nouveau code.' };
@@ -105,7 +112,20 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
     const result = await handover(db,s,u.id,String(req.params.id),z.string().max(4).parse(req.body.code),stripeClient());
     return { ...result, state: snapshot(s,u.id) };
   })));
-  app.get('/test/status',(_req,res) => res.json({ stripe: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'configured' : 'missing', brevo: process.env.BREVO_API_KEY && process.env.BREVO_SENDER_EMAIL ? 'configured' : 'missing', shipping: process.env.SHIPPING_DRIVER === 'simulated' ? 'simulated' : 'disabled' }));
+  app.get('/test/status',(_req,res) => res.json({ scenarios: process.env.BETA_SELLER_STRIPE_ID && config.betaEmails?.length ? 'ready' : 'pending', stripe: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'configured' : 'missing', brevo: process.env.BREVO_API_KEY && process.env.BREVO_SENDER_EMAIL ? 'configured' : 'missing', shipping: process.env.SHIPPING_DRIVER === 'simulated' ? 'simulated' : 'disabled' }));
+  app.post('/test/listing',async (req,res) => res.json(await db.run(s=>{
+    const user=requireUser(s,sessionUser(req));
+    return {annonceId:testListing(db,s,user.id,config.betaEmails),state:snapshot(s,user.id)};
+  })));
+  app.post('/test/orders/:id',async (req,res) => res.json(await db.run(async s=>{
+    const user=requireUser(s,sessionUser(req));
+    const order=testOrder(s,user.id,String(req.params.id),config.betaEmails);
+    const action=z.enum(['label','ship','deliver','handover']).parse(req.body.action);
+    const result=action==='handover'
+      ? await handover(db,s,order.vendeurId,order.id,z.string().regex(/^\d{4}$/).parse(req.body.code),stripeClient())
+      : await shipping(db,s,order.vendeurId,order.id,action);
+    return {...result,state:snapshot(s,user.id)};
+  })));
   app.get('/emails',async (req,res) => res.json(await db.run(s => {
     const u = requireUser(s,sessionUser(req));
     return db.sql.prepare('SELECT id,payload,attempts,sent_at,last_error FROM email_outbox WHERE user_id=? ORDER BY rowid DESC LIMIT 50').all(u.id).map(row => {
