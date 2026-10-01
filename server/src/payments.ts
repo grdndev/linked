@@ -1,3 +1,4 @@
+import {liveMode,publicPurchasesReady} from './commerce';
 import { reglagesApplication } from '../../src/lib/reglages';
 import { randomInt } from 'node:crypto';
 import { z } from 'zod';
@@ -12,11 +13,14 @@ import { queueOrderEmails } from './emails';
 
 type Payment = { order_id: string; checkout_id: string; payment_intent: string; charge_id: string; transfer_id: string; code_attempts: number };
 export async function checkout(db: Database, s: EtatPersiste, userId: string, input: unknown, stripe: Stripe, apiUrl: string) {
-  const data = z.object({ annonceId: z.string(), mode: z.enum(['main_propre','colissimo']), adresse: z.object({ nomComplet: z.string().trim().min(2).max(120), ligne1: z.string().trim().min(3).max(200), ligne2: z.string().max(200).optional(), codePostal: z.string().regex(/^974\d{2}$/), ville: z.string().trim().min(2).max(100), telephone: z.string().regex(/^[+\d ()-]{9,20}$/) }).optional(), prixNegocieCents: z.number().int().positive().optional() }).parse(input);
+  const data = z.object({ annonceId: z.string(), mode: z.enum(['main_propre','colissimo']), surface: z.enum(['web','mobile']).optional(), adresse: z.object({ nomComplet: z.string().trim().min(2).max(120), ligne1: z.string().trim().min(3).max(200), ligne2: z.string().max(200).optional(), codePostal: z.string().regex(/^974\d{2}$/), ville: z.string().trim().min(2).max(100), telephone: z.string().regex(/^[+\d ()-]{9,20}$/) }).optional(), prixNegocieCents: z.number().int().positive().optional() }).parse(input);
   check(reglagesApplication(s).achatsOuverts, 'Les achats sont momentanément suspendus.',409);
+  if(data.surface==='web')check(publicPurchasesReady(),'Les paiements réels de la boutique ne sont pas encore ouverts.',503);
   const buyer = requireUser(s,userId); const a = s.annonces.find(a => a.id === data.annonceId);
   check(a && a.statut === 'en_ligne', 'Cet article n’est plus disponible.', 409);
+  if(liveMode())check(a.vendeurId!=='liked-beta-seller','Les annonces de démonstration ne sont pas vendues.',409);
   check(a.vendeurId !== buyer.id && (data.mode === 'main_propre' ? a.accepteMainPropre : a.accepteEnvoi));
+  if(liveMode())check(data.mode==='main_propre','Colissimo réel n’est pas encore raccordé.',503);
   if (data.mode === 'colissimo') check(reglagesApplication(s).colissimoActif && process.env.SHIPPING_DRIVER === 'simulated' && data.adresse,'La livraison de test doit être activée et son adresse complétée.',422);
   const seller = requireUser(s, a.vendeurId);
   const account = db.sql.prepare('SELECT stripe_id FROM accounts WHERE user_id=?').get(seller.id) as { stripe_id: string } | undefined;
@@ -39,7 +43,7 @@ export async function checkout(db: Database, s: EtatPersiste, userId: string, in
       { price_data: { currency: 'eur', product_data: { name: 'Protection acheteur · 5 % + 0,80 €' }, unit_amount: cart.fraisProtectionCents }, quantity: 1 },
       ...(cart.fraisPortCents ? [{ price_data: { currency: 'eur', product_data: { name: 'Livraison simulée — test' }, unit_amount: cart.fraisPortCents }, quantity: 1 }] : [])],
     payment_intent_data: { transfer_group: id, metadata: { orderId: id } },
-    success_url: `${apiUrl}/payment-return`, cancel_url: `${apiUrl}/payment-return`,
+    success_url: `${apiUrl}/payment-return${data.surface==='web'?'?surface=web':''}`, cancel_url: `${apiUrl}/payment-return${data.surface==='web'?'?surface=web':''}`,
     expires_at: Math.floor(Date.now()/1000)+1800,
   }, { idempotencyKey: `checkout-${id}` });
   s.commandes.unshift(order); a.statut = 'reservee';
@@ -49,6 +53,7 @@ export async function checkout(db: Database, s: EtatPersiste, userId: string, in
 
 /** Signature validation happens before this handler. Checkout return URLs never mark an order as paid. */
 export async function webhook(db: Database, s: EtatPersiste, event: Stripe.Event, stripe: Stripe) {
+  check(liveMode()?event.livemode===true:event.livemode!==true,'Événement Stripe provenant du mauvais environnement.',409);
   if (db.sql.prepare('SELECT id FROM events WHERE id=?').get(event.id)) return;
   if (await boostWebhook(db,s,event,stripe)) { db.sql.prepare('INSERT INTO events VALUES (?)').run(event.id); return; }
   if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.expired') {

@@ -1,3 +1,4 @@
+import {liveMode} from './commerce';
 import type { Commande } from '../../src/types';
 import type { EtatPersiste } from '../../src/types/state';
 import { Database } from './database';
@@ -9,7 +10,7 @@ export function queueOrderEmails(db: Database,s: EtatPersiste,c: Commande,event:
   const title = s.annonces.find(a=>a.id===c.annonceId)?.titre || 'Ton article';
   for (const id of [c.acheteurId,c.vendeurId]) {
     const user = s.utilisateurs.find(u=>u.id===id); if (!user) continue;
-    const payload = { to: user.email,...orderEmail(c,title,event,id===c.vendeurId) };
+    const payload = { to: user.email,...orderEmail(c,title,event,id===c.vendeurId,liveMode()) };
     db.sql.prepare('INSERT OR IGNORE INTO email_outbox(id,user_id,payload,next_attempt) VALUES (?,?,?,?)').run(`${c.id}:${event}:${id}`,id,JSON.stringify(payload),Date.now());
   }
 }

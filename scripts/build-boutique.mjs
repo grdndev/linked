@@ -1,0 +1,10 @@
+import {build} from 'esbuild';
+import {mkdir,copyFile,writeFile} from 'node:fs/promises';
+const api=process.env.EXPO_PUBLIC_API_URL;if(!api||!/^https?:\/\//.test(api))throw new Error('EXPO_PUBLIC_API_URL requise');
+await mkdir('dist/boutique',{recursive:true});
+await copyFile('node_modules/@expo-google-fonts/outfit/400Regular/Outfit_400Regular.ttf','dashboard/Outfit-Regular.ttf');
+await copyFile('node_modules/@expo-google-fonts/outfit/600SemiBold/Outfit_600SemiBold.ttf','dashboard/Outfit-Semibold.ttf');
+const r=await build({entryPoints:['boutique/main.tsx'],bundle:true,format:'esm',minify:true,outdir:'dist/boutique',entryNames:'boutique-[hash]',assetNames:'assets/[name]-[hash]',loader:{'.ttf':'file'},define:{__API_URL__:JSON.stringify(api)},metafile:true,jsx:'automatic'});
+const js=Object.keys(r.metafile.outputs).find(p=>p.endsWith('.js')).split('/').at(-1);const css=Object.keys(r.metafile.outputs).find(p=>p.endsWith('.css')).split('/').at(-1);
+const icon='data:image/svg+xml,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40"><rect width="40" height="40" rx="9" fill="#153d38"/><path d="M20 29S7 21 7 14c0-8 10-8 13-2 3-6 13-6 13 2 0 7-13 15-13 15" fill="#ed886c"/></svg>');
+await writeFile('dist/boutique/index.html',`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#153d38"><meta name="description" content="Explore les dressings de La Réunion. Mode femme, homme et enfant de seconde main : découvre les articles, les tailles et les trouvailles près de chez toi sur Liked."><link rel="icon" href="${icon}"><title>Liked · La seconde main, sur ton île</title><link rel="stylesheet" href="/boutique/${css}"></head><body><div id="root"></div><script type="module" src="/boutique/${js}"></script></body></html>`);console.log('Boutique web construite dans dist/boutique.');

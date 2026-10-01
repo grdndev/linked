@@ -25,3 +25,7 @@ jobs:
         env:
           EXPO_NO_TELEMETRY: '1'
           EXPO_PUBLIC_API_DRIVER: mock
+
+      - run: npm run build:dashboard && npm run build:boutique
+        env:
+          EXPO_PUBLIC_API_URL: https://api.example.invalid

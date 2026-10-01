@@ -72,3 +72,7 @@ Ouvrir l’atelier depuis le bandeau « Espace de test ». Les scénarios achat,
 ## Administration web indépendante
 
 Le dashboard est dans `dashboard/` et se construit avec `npm run build:web` (ou `npm run build:dashboard`). Son adresse est `/dashboard/`, avec une connexion réservée aux administrateurs. Les écrans de gestion ne sont pas embarqués dans le mobile. Voir [le manuel du dashboard](docs/BACK-OFFICE.md). Colissimo est désactivé par défaut ; son activation dans les réglages ouvre uniquement le transport simulé de recette.
+
+## Boutique web
+
+Le site e-commerce indépendant est disponible sur `/boutique/`. Le catalogue est consultable sans connexion et utilise une API publique limitée aux articles et profils vendeurs. Le parcours d’achat demande une connexion après le choix de l’article. Voir [la boutique et le passage aux paiements réels](docs/BOUTIQUE-WEB.md).

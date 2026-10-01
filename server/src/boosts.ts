@@ -1,3 +1,4 @@
+import {liveMode} from './commerce';
 import { z } from 'zod';
 import type Stripe from 'stripe';
 import type { EtatPersiste } from '../../src/types/state';
@@ -11,10 +12,10 @@ function email(db:Database,s:EtatPersiste,b:Boost,event:'active'|'expired'|'refu
   const u=s.utilisateurs.find(u=>u.id===b.user_id); if(!u)return;
   const title=s.annonces.find(a=>a.id===b.listing_id)?.titre || 'Ton article';
   const heading={active:'Ton boost est activé',expired:'Ton boost est terminé',refunded:'Ton boost a été remboursé'}[event];
-  const detail=event==='active'?`Ton article est sponsorisé pendant ${b.days} jours, jusqu’au ${new Date(b.ends_at!).toLocaleString('fr-FR',{timeZone:'Indian/Reunion'})} (heure Réunion). Montant de test : ${(b.amount/100).toFixed(2)} €. La mise en avant ne garantit pas une vente.`:event==='expired'?'La période de mise en avant est terminée. Tu peux renouveler ton boost depuis Mes annonces.':'Le remboursement Stripe est confirmé. La mise en avant est désactivée.';
-  const textContent=`${heading}\n${title}\n${detail}\nEnvironnement de test : aucun argent réel. Ouvre Liked → Mes annonces.`;
+  const detail=event==='active'?`Ton article est sponsorisé pendant ${b.days} jours, jusqu’au ${new Date(b.ends_at!).toLocaleString('fr-FR',{timeZone:'Indian/Reunion'})} (heure Réunion). Montant${liveMode()?'':' de test'} : ${(b.amount/100).toFixed(2)} €. La mise en avant ne garantit pas une vente.`:event==='expired'?'La période de mise en avant est terminée. Tu peux renouveler ton boost depuis Mes annonces.':'Le remboursement Stripe est confirmé. La mise en avant est désactivée.';
+  const textContent=`${heading}\n${title}\n${detail}\n${liveMode()?'':'Environnement de test : aucun argent réel.'} Ouvre Liked → Mes annonces.`;
   const escaped=textContent.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]!));
-  const payload={to:u.email,subject:`[TEST] ${heading}`,textContent,htmlContent:`<html lang="fr"><body style="background:#F6F3ED;color:#0B3B3C;font-family:Arial;padding:28px"><h1>liked<span style="color:#F27961">.</span></h1><div style="background:white;padding:24px;border-radius:20px;white-space:pre-line">${escaped}</div></body></html>`};
+  const payload={to:u.email,subject:`${liveMode()?'':'[TEST] '}${heading}`,textContent,htmlContent:`<html lang="fr"><body style="background:#F6F3ED;color:#0B3B3C;font-family:Arial;padding:28px"><h1>liked<span style="color:#F27961">.</span></h1><div style="background:white;padding:24px;border-radius:20px;white-space:pre-line">${escaped}</div></body></html>`};
   db.sql.prepare('INSERT OR IGNORE INTO email_outbox(id,user_id,payload,next_attempt) VALUES (?,?,?,?)').run(`boost:${b.id}:${event}`,b.user_id,JSON.stringify(payload),Date.now());
 }
 export function expireBoosts(db:Database,s:EtatPersiste,now=Date.now()) {
@@ -60,9 +61,9 @@ export async function boostWebhook(db:Database,s:EtatPersiste,event:Stripe.Event
     check(session.metadata?.boostId===b.id && session.client_reference_id===b.id,'Référence boost incohérente.',409);
     if(b.status!=='pending')return true;
     if(event.type==='checkout.session.expired'){db.sql.prepare("UPDATE boosts SET status='canceled' WHERE id=?").run(b.id);return true;}
-    check(!session.livemode && session.payment_status==='paid' && session.amount_total===b.amount && session.currency==='eur' && typeof session.payment_intent==='string','Paiement boost incohérent.',409);
+    check((liveMode()?session.livemode===true:!session.livemode) && session.payment_status==='paid' && session.amount_total===b.amount && session.currency==='eur' && typeof session.payment_intent==='string','Paiement boost incohérent.',409);
     const pi=await stripe.paymentIntents.retrieve(session.payment_intent);
-    check(!pi.livemode && pi.status==='succeeded' && pi.amount_received===b.amount && pi.currency==='eur' && pi.metadata.boostId===b.id,'Montant boost incohérent.',409);
+    check((liveMode()?pi.livemode===true:!pi.livemode) && pi.status==='succeeded' && pi.amount_received===b.amount && pi.currency==='eur' && pi.metadata.boostId===b.id,'Montant boost incohérent.',409);
     db.sql.prepare('UPDATE boosts SET payment_intent=? WHERE id=?').run(pi.id,b.id);
     b.payment_intent=pi.id;
     const a=s.annonces.find(a=>a.id===b.listing_id);

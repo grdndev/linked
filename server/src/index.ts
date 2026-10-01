@@ -1,3 +1,4 @@
+import {liveMode,validateCommerceEnvironment} from './commerce';
 import { Database } from './database';
 import { createApp } from './app';
 import { flushEmails } from './emails';
@@ -9,12 +10,14 @@ const secret = process.env.AUTH_SECRET;
 if (!secret || secret.length < 64) throw new Error('AUTH_SECRET doit contenir au moins 64 caractères aléatoires. Voir .env.example.');
 const apiUrl = process.env.PUBLIC_API_URL || 'http://localhost:3001';
 const db = new Database(process.env.DATABASE_PATH || './data/liked.sqlite');
+validateCommerceEnvironment(db);
+if(liveMode()){const account=await stripeClient().accounts.retrieve();if(!account.charges_enabled||!account.payouts_enabled)throw new Error('Stripe doit autoriser les encaissements et les versements avant ouverture.');}
 const app = createApp(db, {
   secret, apiUrl, returnUrl: process.env.APP_RETURN_URL || 'liked://mes-achats',
   webOrigin: process.env.WEB_ORIGIN || 'http://localhost:8081', uploadDir: process.env.UPLOAD_DIR || './data/uploads',
   betaEmails: process.env.BETA_ALLOWED_EMAILS?.split(',').map(e=>e.trim().toLowerCase()).filter(Boolean),
 });
-app.listen(Number(process.env.PORT || 3001),process.env.HOST || '127.0.0.1',() => console.log('Liked API ready (Stripe test mode).'));
+app.listen(Number(process.env.PORT || 3001),process.env.HOST || '127.0.0.1',() => console.log(liveMode()?'Liked API ready (live payments).':'Liked API ready (Stripe test mode).'));
 
 let working = false;
 const timer = setInterval(async () => {
@@ -22,7 +25,7 @@ const timer = setInterval(async () => {
   working = true;
   try {
     await db.run(s=>expireBoosts(db,s));
-    if (process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')) await settleDueOrders(db,stripeClient());
+    if (process.env.STRIPE_SECRET_KEY) await settleDueOrders(db,stripeClient());
   } catch { console.error('Order settlement will retry.'); }
   try { if (process.env.BREVO_API_KEY) await flushEmails(db); }
   catch { console.error('Email worker will retry.'); }

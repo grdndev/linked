@@ -1,3 +1,4 @@
+import {liveMode,publicPurchasesReady} from './commerce';
 import { adminOverview, adminAction } from './admin';
 import { forfaitsBoost, reglagesApplication } from '../../src/lib/reglages';
 import express, { type Request, type Response, type NextFunction } from 'express';
@@ -9,7 +10,7 @@ import { mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { z } from 'zod';
 import { Database } from './database';
-import { check, code, digest, equal, HttpError, requireUser, snapshot, token } from './security';
+import { check, code, digest, equal, HttpError, requireUser, snapshot, publicProfile, token } from './security';
 import { command, newUser, registration, uid } from './domain';
 import { sendCode, stripeClient } from './providers';
 import { checkout, handover, onboarding, webhook, refundOrder, shipping } from './payments';
@@ -31,7 +32,7 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
     }
     if (req.method === 'OPTIONS') { res.sendStatus(204); return; } next();
   });
-  app.get('/health',(_req,res) => res.json({ status: 'ok', service: 'liked-api', payments: 'test-only' }));
+  app.get('/health',(_req,res) => res.json({ status: 'ok', service: 'liked-api', payments: liveMode()?'live':'test-only' }));
   app.post('/webhooks/stripe', express.raw({ type: 'application/json', limit: '1mb' }), async (req,res) => {
     check(process.env.STRIPE_WEBHOOK_SECRET,'Webhook Stripe non configuré.',503);
     const stripe = stripeClient(); let event;
@@ -92,6 +93,11 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
   app.get('/state',async (req,res) => res.json(await db.run(s => {
     const id = sessionUser(req); if (id) requireUser(s,id); return snapshot(s,id);
   })));
+  app.get('/catalogue',async(_req,res)=>res.json(await db.run(s=>{
+    const annonces=s.annonces.filter(a=>a.statut==='en_ligne' && s.utilisateurs.some(u=>u.id===a.vendeurId && ['actif','averti'].includes(u.statut)));
+    const sellers=new Set(annonces.map(a=>a.vendeurId));
+    return {annonces,vendeurs:s.utilisateurs.filter(u=>sellers.has(u.id)).map(publicProfile),colissimoActif:reglagesApplication(s).colissimoActif,demonstrationIds:annonces.filter(a=>a.vendeurId==='liked-beta-seller').map(a=>a.id),achatsDisponibles:publicPurchasesReady()&&reglagesApplication(s).achatsOuverts};
+  })));
   const ownedPhoto = (url: string,id: string) => check(db.sql.prepare('SELECT url FROM uploads WHERE url=? AND user_id=?').get(url,id),'Photo non autorisée.');
   app.post('/commands/:name',async (req,res) => {
     const args = z.array(z.unknown()).max(6).parse(req.body.args);
@@ -124,6 +130,13 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
     const u = requireUser(s,sessionUser(req));
     const result = await checkout(db,s,u.id,req.body,stripeClient(),config.apiUrl);
     return { ...result, state: snapshot(s,u.id) };
+  })));
+  app.post('/orders/:id/checkout',async(req,res)=>res.json(await db.run(async s=>{
+    const u=requireUser(s,sessionUser(req));const c=s.commandes.find(c=>c.id===req.params.id);
+    check(c&&c.acheteurId===u.id,'Commande introuvable.',404);check(c.statut==='paiement_en_attente','Ce paiement n’est plus en attente.',409);
+    const p=db.sql.prepare('SELECT checkout_id FROM payment_data WHERE order_id=?').get(c.id);check(p,'Paiement introuvable.',404);
+    const session=await stripeClient().checkout.sessions.retrieve(String(p.checkout_id));
+    check(session.status==='open'&&session.url,'Ce paiement est expiré ou déjà confirmé. Actualise tes achats.',409);return {checkoutUrl:session.url};
   })));
   app.post('/orders/:id/handover',async (req,res) => res.json(await db.run(async s => {
     const u = requireUser(s,sessionUser(req));
@@ -165,7 +178,8 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
     return {...result,state:snapshot(s,u.id)};
   })));
   app.post('/connect/onboarding',async (req,res) => res.json(await db.run(s => onboarding(db,s,requireUser(s,sessionUser(req)).id,stripeClient(),config.apiUrl))));
-  app.get('/payment-return',(_req,res) => {
+  app.get('/payment-return',(req,res) => {
+    if(req.query.surface==='web'){res.redirect(303,new URL('/boutique/?page=compte',config.webOrigin).href);return;}
     if (/^https?:\/\//.test(config.returnUrl)) { res.redirect(303,config.returnUrl); return; }
     const url = config.returnUrl.replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;');
     res.type('html').send(`<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Liked — retour</title><body><h1>Retour à Liked</h1><p>Tu peux fermer cette page. La commande sera mise à jour après confirmation de Stripe.</p><a href="${url}">Ouvrir l’application</a></body></html>`);

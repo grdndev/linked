@@ -1,3 +1,4 @@
+import {liveMode} from './commerce';
 import { filtrerCoordonnees } from '../../src/lib/filtreCoordonnees';
 import { z } from 'zod';
 import type Stripe from 'stripe';
@@ -20,7 +21,7 @@ export function adminOverview(db:Database,s:EtatPersiste,id:string|null) {
   });
   const accounts=db.sql.prepare('SELECT user_id FROM accounts').all().map(r=>r.user_id);
   return {state:{...state,utilisateurs:s.utilisateurs,mouvements:s.mouvements,messages:s.messages.filter(m=>s.signalements.some(r=>r.type==='message'&&r.cibleId===m.id)).map(m=>({...m,texte:filtrerCoordonnees(m.texte,true).texte}))},boosts,emails,accounts,reglages:reglagesApplication(s),
-    services:{stripe:process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')?'test':'missing',brevo:!!(process.env.BREVO_API_KEY&&process.env.BREVO_SENDER_EMAIL),colissimo:process.env.SHIPPING_DRIVER==='simulated'?'simulated':'unconfigured'},updatedAt:now()};
+    services:{stripe:process.env.STRIPE_SECRET_KEY?(liveMode()?'live':'test'):'missing',brevo:!!(process.env.BREVO_API_KEY&&process.env.BREVO_SENDER_EMAIL),colissimo:process.env.SHIPPING_DRIVER==='simulated'?'simulated':'unconfigured'},updatedAt:now()};
 }
 const key=z.string().min(1).max(200);
 const reason=z.string().trim().min(10,'Explique le motif en au moins 10 caractères.').max(1000);

@@ -1,9 +1,11 @@
+import {liveMode, publicPurchasesReady} from './commerce';
 import Stripe from 'stripe';
 import { HttpError } from './security';
 
 export function stripeClient() {
   if (!process.env.STRIPE_SECRET_KEY) throw new HttpError(503, 'Stripe n’est pas encore configuré. Aucun débit effectué.');
-  if (!process.env.STRIPE_SECRET_KEY.startsWith('sk_test_')) throw new HttpError(503, 'Cette bêta accepte uniquement les clés Stripe de test.');
+  if (!process.env.STRIPE_SECRET_KEY.startsWith(liveMode()?'sk_live_':'sk_test_')) throw new HttpError(503, 'La clé Stripe ne correspond pas au mode configuré.');
+  if(liveMode()&&!publicPurchasesReady())throw new HttpError(503,'Les paiements réels ne sont pas encore ouverts.');
   return new Stripe(process.env.STRIPE_SECRET_KEY, { maxNetworkRetries: 2, timeout: 15000 });
 }
 export async function sendEmail(message: { to: string; subject: string; textContent: string; htmlContent?: string }) {
@@ -20,5 +22,5 @@ export async function sendEmail(message: { to: string; subject: string; textCont
   if (!response.ok) throw new HttpError(502, 'L’e-mail n’a pas pu être envoyé. Réessaie plus tard.');
 }
 export async function sendCode(email: string, code: string) {
-  await sendEmail({ to: email, subject: '[TEST] Ton code de connexion Liked', textContent: `Ton code Liked : ${code}. Il expire dans 10 minutes. Ne le partage avec personne. Si tu n’as pas demandé ce code, ignore cet e-mail.` });
+  await sendEmail({ to: email, subject: `${liveMode()?'':'[TEST] '}Ton code de connexion Liked`, textContent: `Ton code Liked : ${code}. Il expire dans 10 minutes. Ne le partage avec personne. Si tu n’as pas demandé ce code, ignore cet e-mail.` });
 }
