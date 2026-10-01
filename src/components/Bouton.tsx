@@ -1,9 +1,12 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { alerter } from '@/lib/dialogues';
-import { ActivityIndicator, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { ActivityIndicator, Animated, Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, font, radius, space } from '@/theme';
 import { Texte } from './Texte';
+import { useMouvementReduit } from './Mouvement';
+
+const PressableAnime = Animated.createAnimatedComponent(Pressable);
 
 type Ton = 'action' | 'encre' | 'contour' | 'contourClair' | 'discret' | 'danger';
 type Taille = 'md' | 'lg' | 'sm';
@@ -28,6 +31,18 @@ export function Bouton({
   const verrou = useRef(false);
   const [occupe, setOccupe] = useState(false);
   const inactif = desactive || chargement || occupe;
+  const mouvementReduit = useMouvementReduit();
+  const echelle = useRef(new Animated.Value(1)).current;
+  const [appuye, setAppuye] = useState(false);
+  const animer = (toValue: number) => {
+    echelle.stopAnimation();
+    if (mouvementReduit !== false) { echelle.setValue(1); return; }
+    Animated.spring(echelle, { toValue, speed: 32, bounciness: 3, useNativeDriver: Platform.OS !== 'web' }).start();
+  };
+  useEffect(() => {
+    if (inactif || mouvementReduit !== false) { echelle.stopAnimation(); echelle.setValue(1); setAppuye(false); }
+    return () => echelle.stopAnimation();
+  }, [inactif, mouvementReduit, echelle]);
   const fonds: Record<Ton, ViewStyle> = {
     action: { backgroundColor: colors.corail },
     encre: { backgroundColor: colors.encre },
@@ -48,7 +63,10 @@ export function Bouton({
   const hauteurs: Record<Taille, number> = { sm: 38, md: 48, lg: 56 };
 
   return (
-    <Pressable
+    <PressableAnime
+      disabled={!!inactif}
+      onPressIn={() => { setAppuye(true); animer(0.975); }}
+      onPressOut={() => { setAppuye(false); animer(1); }}
       accessibilityRole="button"
       accessibilityState={{ disabled: inactif }}
       onPress={async () => {
@@ -57,14 +75,15 @@ export function Bouton({
         try { await onPress(); } catch(e) { alerter('Action impossible', (e as Error).message); }
         finally { verrou.current = false; setOccupe(false); }
       }}
-      style={({ pressed }) => [
+      style={[
         styles.base,
         fonds[ton],
         { height: hauteurs[taille] },
         pleineLargeur ? { alignSelf: 'stretch' } : null,
-        pressed && !inactif ? { opacity: 0.85, transform: [{ scale: 0.99 }] } : null,
+        appuye && !inactif ? { opacity: 0.88 } : null,
         inactif ? { opacity: 0.45 } : null,
         style,
+        { transform: [{ scale: echelle }] },
       ]}
     >
       {chargement || occupe ? (
@@ -83,7 +102,7 @@ export function Bouton({
           </Texte>
         </View>
       )}
-    </Pressable>
+    </PressableAnime>
   );
 }
 

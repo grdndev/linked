@@ -1,3 +1,5 @@
+import { Logotype } from '@/components/Logo';
+import { Apparition, MouvementProvider, useMouvementReduit } from '@/components/Mouvement';
 import { Dialogues } from '@/components/Dialogues';
 import { ActivityIndicator, AppState, Text, View } from 'react-native';
 import { MODE_DEMO } from '@/services/config';
@@ -16,6 +18,11 @@ import { useLiked } from '@/store/liked';
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function DispositionRacine() {
+  return <MouvementProvider><Application /></MouvementProvider>;
+}
+
+function Application() {
+  const mouvementReduit = useMouvementReduit();
   const policesPretes = useMarqueFonts();
   const pret = useLiked((e) => e.pret);
   const amorcer = useLiked((e) => e.amorcer);
@@ -50,22 +57,24 @@ export default function DispositionRacine() {
     return () => clearInterval(minuteur);
   }, [libererFondsSiEchu]);
 
-  if (!policesPretes || !pret) return <View style={{flex:1,alignItems:'center',justifyContent:'center',gap:16,backgroundColor:colors.sable}}><Text style={{fontSize:38,fontWeight:'700',color:colors.encre}}>liked.</Text><ActivityIndicator color={colors.corail}/><Text style={{color:colors.encre}}>Préparation de ton espace…</Text></View>;
+  if (!policesPretes || !pret) return <View style={{flex:1,alignItems:'center',justifyContent:'center',gap:16,backgroundColor:colors.sable}}><Apparition style={{ alignItems: 'center', gap: 12 }}><Logotype hauteur={48}/><Text style={{ color: colors.encre }}>Une seconde vie commence ici.</Text></Apparition><ActivityIndicator color={colors.corail}/><Text style={{color:colors.encre}}>Préparation de ton espace…</Text></View>;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style="dark" />
+        <Apparition style={{ flex: 1 }}>
         <Stack
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: colors.sable },
-            animation: 'slide_from_right',
+            animation: mouvementReduit === false ? 'slide_from_right' : 'none',
           }}
         >
           <Stack.Screen name="(tabs)" />
-          <Stack.Screen name="paiement/[id]" options={{ animation: 'slide_from_bottom' }} />
+          <Stack.Screen name="paiement/[id]" options={{ animation: mouvementReduit === false ? 'slide_from_bottom' : 'none' }} />
         </Stack>
+        </Apparition>
         <Dialogues />
       </SafeAreaProvider>
     </GestureHandlerRootView>

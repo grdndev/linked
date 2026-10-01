@@ -8,7 +8,7 @@ Accès au site réservé au propriétaire et au testeur pouniandy.kylian@outlook
 
 Dans Liked, choisir « Connexion » : le compte Kylian Test est déjà prêt avec l’adresse invitée. Le code de connexion arrive par Brevo, expire après dix minutes et n’est utilisable qu’une fois. Le serveur autorise uniquement l’adresse du testeur et celle du compte Liked.
 
-## État de la recette — 30 septembre 2026
+## Recette précédente — 30 septembre 2026 (historique technique)
 
 - Clé Stripe sandbox configurée ; paiement technique fictif de 1 € puis remboursement réussis.
 - Expéditeur Brevo actif ; un e-mail technique a été confirmé livré par Brevo au testeur.
@@ -51,8 +51,18 @@ Recette du boost effectuée le 30/09/2026 : achat Stripe test à 2,99 €, activ
 
 ## Retour de recette de Kylian — 30/09/2026
 
-Le tunnel temporaire supprimé par Cloudflare a été remplacé ; le lien du site reste identique. Recharger la page pour recevoir la nouvelle configuration réseau. Comptes, commandes et photos conservés. Le Mac et le tunnel restent nécessaires ; un hébergement serveur permanent reste à déployer pour supprimer cette dépendance.
+Le tunnel temporaire supprimé par Cloudflare a été remplacé ; le lien du site reste identique. Recharger la page pour recevoir la nouvelle configuration réseau. Les données avaient été conservées lors de cette intervention du 30 septembre. Voir la remise en route du 1er octobre ci-dessous pour l’état actuel. Le Mac et le tunnel restent nécessaires ; un hébergement serveur permanent reste à déployer pour supprimer cette dépendance.
 
 Au dépôt d’une annonce : choisir Sans boost, 3 jours (2,99 €) ou 7 jours (5,99 €), puis publier. Le forfait choisi est repris sur l’écran de paiement du boost. Annuler le paiement conserve l’annonce publiée gratuitement.
 
 La messagerie masque les téléphones, e-mails, liens et identifiants sociaux avant et après paiement. Les anciens messages sont filtrés dans les réponses API. Les coordonnées détectées sont remplacées par des puces, pas seulement floutées visuellement. Cette détection couvre les formats courants et plusieurs obfuscations ; elle ne garantit pas de reconnaître toute formulation possible.
+
+## Remise en route et animations — 1er octobre 2026
+
+L’ancien dossier temporaire du serveur a disparu : son historique local (commandes, boosts, conversations et photos d’essai) n’a pas pu être récupéré. Les preuves Stripe/Brevo du 30 septembre restent chez les prestataires ; elles ne sont pas des commandes actives de cette nouvelle base. Le catalogue de douze articles fictifs et le profil minimal Kylian Test ont été rétablis. Recharger le site et demander un nouveau code de connexion avec l’adresse invitée. Les anciennes sessions sont invalides.
+
+La configuration privée, la base SQLite et les photos sont maintenant placées dans un dossier durable distinct du dossier de compilation. Une sauvegarde SQLite cohérente est conservée séparément après la remise en route. Le serveur et le tunnel doivent néanmoins rester actifs sur le Mac.
+
+Animations : logo à l’ouverture, arrivée progressive des visuels et textes d’accueil (moins de 700 ms), boutons avec un léger effet de pression. Aucun délai supplémentaire ne bloque la navigation. Les animations sont annulées au démontage et désactivées lorsque « Réduire les animations » est activé dans le système ou le navigateur. Les transitions natives respectent également ce réglage.
+
+Recette visuelle : ouvrir /bienvenue, vérifier que les boutons sont disponibles immédiatement et que la page reste défilable sur petit écran ; tester Découvrir les articles puis le retour. Sur iPhone, activer Réglages → Accessibilité → Animation → Réduire les animations et rouvrir l’accueil pour vérifier l’affichage sans mouvement. La distribution actuelle reste une application web, pas un binaire TestFlight.
