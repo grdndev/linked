@@ -1,6 +1,6 @@
 # Avant ouverture publique
 
-Cette livraison est une bêta et refuse les clés Stripe réelles. Une bêta web connectée à une API locale par tunnel temporaire est hébergée ; aucune API de production ni publication App Store / Play Store n’a été effectuée.
+Le catalogue de la boutique web est public. Son API reste celle de la bêta sur le Mac, par tunnel temporaire, et les achats web sont fermés. Le mode réel est préparé avec des contrôles de configuration et de séparation des données, mais n’est pas activé. Aucune API de production ni publication App Store / Play Store n’a été effectuée. Voir [BOUTIQUE-WEB.md](BOUTIQUE-WEB.md) pour les conditions et la procédure d’ouverture.
 
 ## Prérequis techniques
 
