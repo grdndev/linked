@@ -18,3 +18,4 @@ android/
 !.env.example
 server/data/
 coverage/
+dashboard/*.ttf

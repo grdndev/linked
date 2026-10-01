@@ -20,6 +20,7 @@ import type {
 } from './index';
 
 export interface EtatPersiste {
+  reglages?: import('../lib/reglages').ReglagesApplication;
   utilisateurs: Utilisateur[];
   annonces: Annonce[];
   conversations: Conversation[];

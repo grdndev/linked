@@ -14,7 +14,7 @@ import { colors, radius, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { useMoi } from '@/store/selecteurs';
 import type { EtatArticle, Gabarit } from '@/types';
-import { BOOST_PLANS } from '@/lib/boost';
+import { forfaitsBoost, reglagesApplication } from '@/lib/reglages';
 import { MODE_DEMO } from '@/services/config';
 import { alerter } from '@/lib/dialogues';
 
@@ -22,6 +22,9 @@ const MAX_PHOTOS = 8;
 
 export default function Vendre() {
   const moi = useMoi();
+  const config = useLiked(e=>e.reglages);
+  const reglages=reglagesApplication({reglages:config});
+  const BOOST_PLANS=forfaitsBoost({reglages:config});
   const publier = useLiked((e) => e.publierAnnonce);
 
   const [photos, setPhotos] = useState<string[]>([]);
@@ -90,7 +93,7 @@ export default function Vendre() {
     if (!etat) return setErreur("Précise l'état de l'article.");
     if (!couleur) return setErreur('Choisis une couleur.');
     if (prixCents < 100) return setErreur('Le prix minimum est de 1 €.');
-    if (!mainPropre && !envoi) return setErreur('Choisis au moins un mode de remise.');
+    if (!mainPropre && !(envoi && reglages.colissimoActif)) return setErreur('Choisis au moins un mode de remise.');
 
     const annonceId = await publier({
       titre: titre.trim(),
@@ -106,10 +109,10 @@ export default function Vendre() {
       gabarit,
       accepteMainPropre: mainPropre,
       communeRemise: mainPropre ? communeRemise : undefined,
-      accepteEnvoi: envoi,
+      accepteEnvoi: envoi && reglages.colissimoActif,
     });
     if (!annonceId) return;
-    const selectedBoost=boostPlan;
+    const selectedBoost=reglages.boostsActifs?boostPlan:'';
     reinitialiser();
     if(selectedBoost) router.push(`/booster/${annonceId}?plan=${selectedBoost}&publication=1`);
     else router.push(`/annonce/${annonceId}`);
@@ -301,15 +304,15 @@ export default function Vendre() {
               </Pressable>
             ) : null}
 
-            <Interrupteur
-              titre="Envoi Colissimo"
-              sousTitre="Étiquette prépayée générée par Liked"
+            {reglages.colissimoActif ? <Interrupteur
+              titre="Envoi Colissimo · test"
+              sousTitre="Transport simulé, aucun affranchissement réel"
               actif={envoi}
               onBasculer={() => setEnvoi((v) => !v)}
-            />
+            /> : <Texte variante="petit">La livraison Colissimo n’est pas activée. Propose une remise en main propre.</Texte>}
           </Section>
 
-          {!MODE_DEMO && <Section titre="Booster dès la publication · facultatif">
+          {!MODE_DEMO && reglages.boostsActifs && <Section titre="Booster dès la publication · facultatif">
             <Texte variante="petit">Publie gratuitement, ou ajoute un boost pour apparaître dans « À la une ». Aucun abonnement.</Texte>
             {[{id:'',jours:0,prixCents:0,nom:'Sans boost'},...BOOST_PLANS].map(p=><Pressable key={p.id} accessibilityRole="radio" accessibilityState={{checked:boostPlan===p.id}} accessibilityLabel={p.id?`Boost ${p.jours} jours, ${euros(p.prixCents)}`:'Sans boost, publication gratuite'} onPress={()=>setBoostPlan(p.id)} style={[styles.option,boostPlan===p.id && styles.optionActive]}>
               <Ionicons name={boostPlan===p.id?'radio-button-on':'radio-button-off'} size={22} color={colors.corail}/>
@@ -318,7 +321,7 @@ export default function Vendre() {
             {boostPlan && <Texte variante="petit">Ton annonce sera publiée immédiatement. Le boost démarrera uniquement après le paiement confirmé. Si tu annules le paiement, l’annonce reste en ligne sans boost.</Texte>}
           </Section>}
           {erreur ? <Texte variante="petit" couleur={colors.danger}>{erreur}</Texte> : null}
-          <Bouton titre={boostPlan?"Publier et continuer vers le boost":"Publier mon annonce"} pleineLargeur taille="lg" onPress={valider} />
+          <Bouton titre={boostPlan && reglages.boostsActifs?"Publier et continuer vers le boost":"Publier mon annonce"} pleineLargeur taille="lg" desactive={!reglages.publicationsOuvertes} onPress={valider} />
           <Texte variante="micro" centre>
             Publication immédiate. Liked peut retirer une annonce non conforme après vérification.
           </Texte>

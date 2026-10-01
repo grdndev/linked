@@ -93,7 +93,7 @@ export default function Profil() {
           <Ligne icone="lock-closed-outline" titre="Confidentialité et données" onPress={() => router.push('/reglages/confidentialite')} />
           <Ligne icone="help-circle-outline" titre="Aide et conditions" onPress={() => router.push('/reglages')} />
           {moi.role === 'admin' ? (
-            <Ligne icone="construct-outline" titre="Back-office Liked" onPress={() => router.push('/admin')} />
+            <Ligne icone="construct-outline" titre="Dashboard web Liked ↗" onPress={() => router.push('/admin')} />
           ) : null}
         </Groupe>
 

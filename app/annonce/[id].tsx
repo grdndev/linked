@@ -1,3 +1,4 @@
+import { reglagesApplication } from '@/lib/reglages';
 import { useEffect, useRef, useState } from 'react';
 import { Dimensions, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
@@ -28,6 +29,8 @@ const MOTIFS_SIGNALEMENT = [
 ];
 
 export default function DetailAnnonce() {
+  const shippingConfig=useLiked(e=>e.reglages);
+  const colissimoActif=reglagesApplication({reglages:shippingConfig}).colissimoActif;
   const { id } = useLocalSearchParams<{ id: string }>();
   const annonce = useAnnonce(id);
   const vendeur = useUtilisateur(annonce?.vendeurId);
@@ -146,7 +149,7 @@ export default function DetailAnnonce() {
                 detail="Gratuit · code de confirmation à 4 chiffres"
               />
             ) : null}
-            {annonce.accepteEnvoi ? (
+            {annonce.accepteEnvoi && colissimoActif ? (
               <ModeLigne
                 icone="cube-outline"
                 titre={`Colissimo — ${euros(FORFAITS_PORT_CENTS[annonce.gabarit])}`}

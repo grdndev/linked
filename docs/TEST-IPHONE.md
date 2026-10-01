@@ -66,3 +66,13 @@ La configuration privée, la base SQLite et les photos sont maintenant placées 
 Animations : logo à l’ouverture, arrivée progressive des visuels et textes d’accueil (moins de 700 ms), boutons avec un léger effet de pression. Aucun délai supplémentaire ne bloque la navigation. Les animations sont annulées au démontage et désactivées lorsque « Réduire les animations » est activé dans le système ou le navigateur. Les transitions natives respectent également ce réglage.
 
 Recette visuelle : ouvrir /bienvenue, vérifier que les boutons sont disponibles immédiatement et que la page reste défilable sur petit écran ; tester Découvrir les articles puis le retour. Sur iPhone, activer Réglages → Accessibilité → Animation → Réduire les animations et rouvrir l’accueil pour vérifier l’affichage sans mouvement. La distribution actuelle reste une application web, pas un binaire TestFlight.
+
+## Version du 1er octobre : administration séparée
+
+Au lancement, le logo apparaît sur fond vert foncé puis le cœur s’agrandit avant de révéler l’application. Le bouton Passer et la préférence de réduction des animations sont respectés.
+
+Le pilotage se fait depuis une page web distincte : https://liked-beta-reunion.jayan-codialis.chatgpt.site/dashboard/ — se connecter avec l’adresse administrateur et son code e-mail. Le compte membre normal ne peut pas y accéder.
+
+Colissimo est désactivé par défaut. L’administrateur peut activer le transport simulé dans Réglages puis enregistrer ; aucun vrai bordereau n’est créé. La remise en main propre reste disponible sans Colissimo. Les tarifs boost sont réglables, initialement 2,99 € / 3 jours et 5,99 € / 7 jours. Les paiements déjà ouverts gardent leur prix initial.
+
+45 tests automatiques couvrent les principaux parcours métier, l’isolation administrateur, les options et les remboursements. La recette navigateur utilise des données fictives distinctes ; la vérification sur iPhone physique reste à faire par le testeur.

@@ -1,3 +1,4 @@
+import { reglagesApplication } from '../../src/lib/reglages';
 import { filtrerCoordonnees } from '../../src/lib/filtreCoordonnees';
 import { createHmac, randomBytes, randomInt, timingSafeEqual } from 'node:crypto';
 import type { EtatPersiste } from '../../src/types/state';
@@ -35,6 +36,7 @@ export function snapshot(state: EtatPersiste, userId: string | null) {
   const conversationIds = new Set(conversations.map(c => c.id));
   const orderIds = new Set(commands.map(c => c.id));
   return {
+    reglages: reglagesApplication(state),
     utilisateurs: state.utilisateurs.map(u => u.id === userId ? u : publicProfile(u)),
     annonces: state.annonces.filter(a => admin || a.statut === 'en_ligne' || a.vendeurId === userId || commands.some(c => c.annonceId === a.id)),
     conversations: conversations.map(c=>({...c,filtrageLeve:false})),

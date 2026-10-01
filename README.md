@@ -68,3 +68,7 @@ Le serveur de bêta est prévu pour **une seule instance**, sur un volume persis
 ## Tester sur iPhone
 
 Ouvrir l’atelier depuis le bandeau « Espace de test ». Les scénarios achat, carte refusée, livraison et remboursement sont disponibles sans clés en mode mock. Voir [le guide iPhone](docs/TEST-IPHONE.md) pour le partage Safari et TestFlight. L’API inclut les remboursements Stripe avant expédition, la livraison simulée et la file d’e-mails transactionnels Brevo. Les clés réelles de recette et l’hébergement de l’API restent requis pour ces appels externes.
+
+## Administration web indépendante
+
+Le dashboard est dans `dashboard/` et se construit avec `npm run build:web` (ou `npm run build:dashboard`). Son adresse est `/dashboard/`, avec une connexion réservée aux administrateurs. Les écrans de gestion ne sont pas embarqués dans le mobile. Voir [le manuel du dashboard](docs/BACK-OFFICE.md). Colissimo est désactivé par défaut ; son activation dans les réglages ouvre uniquement le transport simulé de recette.

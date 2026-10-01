@@ -1,3 +1,5 @@
+import { adminOverview, adminAction } from './admin';
+import { forfaitsBoost, reglagesApplication } from '../../src/lib/reglages';
 import express, { type Request, type Response, type NextFunction } from 'express';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
@@ -72,6 +74,7 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
       if (!equal(stored.hash,digest(`${data.email}:${data.code}`,config.secret))) return { erreur: 'Code incorrect.' };
       let u = s.utilisateurs.find(u => u.email === data.email);
       if (!u) {
+        if (!reglagesApplication(s).inscriptionsOuvertes) return { erreur: 'Les inscriptions sont momentanément suspendues.' };
         if (!data.profile) return { erreur: 'Crée ton compte pour continuer.' };
         u = newUser(data.email,data.profile); s.utilisateurs.push(u);
       }
@@ -104,7 +107,11 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
       const value = command(s,u.id,name,args); return { result: value ?? null, state: snapshot(s,u.id) };
     }); res.json(result);
   });
-  app.get('/boost/plans',(_req,res)=>res.json(BOOST_PLANS));
+  app.get('/boost/plans',(_req,res)=>res.json(forfaitsBoost(db.read())));
+  app.get('/admin/overview',async(req,res)=>res.json(await db.run(s=>adminOverview(db,s,sessionUser(req)))));
+  app.post('/admin/action',async(req,res)=>res.json(await db.run(async s=>{
+    const id=sessionUser(req); await adminAction(db,s,id,req.body); return adminOverview(db,s,id);
+  })));
   app.get('/boosts/:id',async(req,res)=>res.json(await db.run(s=>ownBoosts(db,s,requireUser(s,sessionUser(req)).id,String(req.params.id)))));
   app.post('/boost/checkout',async(req,res)=>res.json(await db.run(s=>boostCheckout(db,s,requireUser(s,sessionUser(req)).id,req.body,stripeClient(),config.apiUrl))));
   app.get('/boost-return',(req,res)=>{
@@ -123,7 +130,7 @@ export function createApp(db: Database, config: { secret: string; apiUrl: string
     const result = await handover(db,s,u.id,String(req.params.id),z.string().max(4).parse(req.body.code),stripeClient());
     return { ...result, state: snapshot(s,u.id) };
   })));
-  app.get('/test/status',(_req,res) => res.json({ scenarios: process.env.BETA_SELLER_STRIPE_ID && config.betaEmails?.length ? 'ready' : 'pending', stripe: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'configured' : 'missing', brevo: process.env.BREVO_API_KEY && process.env.BREVO_SENDER_EMAIL ? 'configured' : 'missing', shipping: process.env.SHIPPING_DRIVER === 'simulated' ? 'simulated' : 'disabled' }));
+  app.get('/test/status',(_req,res) => res.json({ scenarios: process.env.BETA_SELLER_STRIPE_ID && config.betaEmails?.length ? 'ready' : 'pending', stripe: process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_') ? 'configured' : 'missing', brevo: process.env.BREVO_API_KEY && process.env.BREVO_SENDER_EMAIL ? 'configured' : 'missing', shipping: reglagesApplication(db.read()).colissimoActif && process.env.SHIPPING_DRIVER === 'simulated' ? 'simulated' : 'disabled' }));
   app.post('/test/boost-listing',async(req,res)=>res.json(await db.run(s=>{
     const u=requireUser(s,sessionUser(req));return {annonceId:testBoostListing(s,u.id,config.betaEmails),state:snapshot(s,u.id)};
   })));

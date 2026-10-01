@@ -1,3 +1,4 @@
+import { reglagesApplication } from '../../src/lib/reglages';
 import { randomInt } from 'node:crypto';
 import { z } from 'zod';
 import type Stripe from 'stripe';
@@ -12,10 +13,11 @@ import { queueOrderEmails } from './emails';
 type Payment = { order_id: string; checkout_id: string; payment_intent: string; charge_id: string; transfer_id: string; code_attempts: number };
 export async function checkout(db: Database, s: EtatPersiste, userId: string, input: unknown, stripe: Stripe, apiUrl: string) {
   const data = z.object({ annonceId: z.string(), mode: z.enum(['main_propre','colissimo']), adresse: z.object({ nomComplet: z.string().trim().min(2).max(120), ligne1: z.string().trim().min(3).max(200), ligne2: z.string().max(200).optional(), codePostal: z.string().regex(/^974\d{2}$/), ville: z.string().trim().min(2).max(100), telephone: z.string().regex(/^[+\d ()-]{9,20}$/) }).optional(), prixNegocieCents: z.number().int().positive().optional() }).parse(input);
+  check(reglagesApplication(s).achatsOuverts, 'Les achats sont momentanément suspendus.',409);
   const buyer = requireUser(s,userId); const a = s.annonces.find(a => a.id === data.annonceId);
   check(a && a.statut === 'en_ligne', 'Cet article n’est plus disponible.', 409);
   check(a.vendeurId !== buyer.id && (data.mode === 'main_propre' ? a.accepteMainPropre : a.accepteEnvoi));
-  if (data.mode === 'colissimo') check(process.env.SHIPPING_DRIVER === 'simulated' && data.adresse,'La livraison de test doit être activée et son adresse complétée.',422);
+  if (data.mode === 'colissimo') check(reglagesApplication(s).colissimoActif && process.env.SHIPPING_DRIVER === 'simulated' && data.adresse,'La livraison de test doit être activée et son adresse complétée.',422);
   const seller = requireUser(s, a.vendeurId);
   const account = db.sql.prepare('SELECT stripe_id FROM accounts WHERE user_id=?').get(seller.id) as { stripe_id: string } | undefined;
   check(account, 'Le vendeur doit activer son compte Stripe avant de recevoir un paiement.', 409);
@@ -98,7 +100,7 @@ export async function handover(db: Database,s: EtatPersiste,userId: string,order
   return { ok: true };
 }
 
-async function releasePayment(db: Database,s: EtatPersiste,orderId: string,stripe: Stripe) {
+export async function releasePayment(db: Database,s: EtatPersiste,orderId: string,stripe: Stripe) {
   const c = s.commandes.find(c=>c.id===orderId)!;
   check(!c.litigeId && ['sequestre','livre'].includes(c.statut),'Versement impossible.',409);
   const p = db.sql.prepare('SELECT * FROM payment_data WHERE order_id=?').get(c.id) as Payment;
@@ -119,11 +121,11 @@ async function releasePayment(db: Database,s: EtatPersiste,orderId: string,strip
 }
 
 export async function refundOrder(db: Database,s: EtatPersiste,userId: string,orderId: string,stripe: Stripe) {
-  requireUser(s,userId);
+  const actor = requireUser(s,userId);
   const c = s.commandes.find(c=>c.id===orderId);
-  check(c && [c.acheteurId,c.vendeurId].includes(userId),'Commande non autorisée.',403);
+  check(c && (actor.role === 'admin' || [c.acheteurId,c.vendeurId].includes(userId)),'Commande non autorisée.',403);
   if (c.statut === 'remboursee') return { ok: true };
-  check(['sequestre','etiquette_emise','remboursement_en_cours'].includes(c.statut) && !c.litigeId,'Annulation possible uniquement avant expédition ou remise.',409);
+  check((['sequestre','etiquette_emise','remboursement_en_cours'].includes(c.statut) && !c.litigeId) || (actor.role === 'admin' && ['litige','remboursement_en_cours'].includes(c.statut) && c.litigeId),'Annulation possible uniquement avant expédition ou remise.',409);
   const p = db.sql.prepare('SELECT * FROM payment_data WHERE order_id=?').get(c.id) as Payment;
   check(p?.payment_intent && !p.transfer_id,'Le paiement a déjà été versé au vendeur.',409);
   const existing = db.sql.prepare('SELECT stripe_id FROM refunds WHERE order_id=?').get(c.id);
@@ -147,6 +149,7 @@ export async function reconcileRefund(db: Database,s: EtatPersiste,orderId: stri
   if (r.status === 'succeeded') {
     c.statut = 'remboursee'; c.journal.push({le:now(),libelle:'Remboursement intégral confirmé par Stripe'});
     s.annonces.find(a=>a.id===c.annonceId)!.statut = 'en_ligne';
+    if (c.litigeId) { const l=s.litiges.find(l=>l.id===c.litigeId); if(l) { l.statut='resolu'; l.issue='remboursement_total'; l.montantRembourseCents=c.totalCents; } }
     queueOrderEmails(db,s,c,'remboursement');
   } else if (r.status === 'failed' || r.status === 'canceled') {
     // Keep the article reserved and the transfer blocked until support intervenes.
@@ -163,7 +166,7 @@ export async function shipping(db: Database,s: EtatPersiste,userId: string,order
     check(stripe); await releasePayment(db,s,c.id,stripe); return {ok:true};
   }
   check(process.env.SHIPPING_DRIVER === 'simulated','Le transporteur de test est désactivé.',503);
-  check(u.id === c.vendeurId,'Seul le vendeur peut simuler le transport.',403);
+  check(u.id === c.vendeurId || u.role === 'admin','Seul le vendeur ou le support peut simuler le transport.',403);
   const transitions: Record<string,{from:string;to:typeof c.statut;label:string}> = {
     label: {from:'sequestre',to:'etiquette_emise',label:'Étiquette de test générée — non affranchie'},
     ship: {from:'etiquette_emise',to:'expedie',label:'Prise en charge simulée'},

@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Bouton, Champ, Ecran, EnTete, Texte } from '@/components';
 import { colors, space } from '@/theme';
 import { useLiked } from '@/store/liked';
 import { MODE_DEMO } from '@/services/config';
 
 export default function Connexion() {
+  const {retour}=useLocalSearchParams<{retour?:string}>();
   const { connecter, demanderCode } = useLiked();
   const [email, setEmail] = useState(MODE_DEMO ? 'demo@liked.re' : '');
   const [code, setCode] = useState('');
@@ -19,7 +20,7 @@ export default function Connexion() {
       if (!MODE_DEMO && !envoye) { await demanderCode(email,'email'); setEnvoye(true); return; }
       const result = await connecter(email,code);
       if (!result.ok) { setErreur(result.erreur); return; }
-      router.replace('/(tabs)');
+      router.replace(retour==='admin'?'/admin':'/(tabs)');
     } catch (error) { setErreur((error as Error).message); }
     finally { setEnCours(false); }
   };

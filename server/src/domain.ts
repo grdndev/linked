@@ -1,3 +1,4 @@
+import { reglagesApplication } from '../../src/lib/reglages';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import type { EtatPersiste } from '../../src/types/state';
@@ -57,8 +58,10 @@ export function command(s: EtatPersiste, userId: string, name: string, args: unk
     }
     case 'majProspection': u.preferences.prospectionCommerciale = z.boolean().parse(args[0]); return;
     case 'publierAnnonce': {
+      check(reglagesApplication(s).publicationsOuvertes, 'Les nouvelles publications sont momentanément suspendues.',409);
       check(u.majeur, 'La vente est réservée aux personnes majeures.');
       const data = listingSchema.parse(args[0]);
+      check(reglagesApplication(s).colissimoActif || data.accepteMainPropre,'Colissimo est désactivé : propose une remise en main propre.',422);
       const a: Annonce = { ...data, id: uid(), vendeurId: u.id, statut: 'en_ligne', publieeLe: now(), favoris: 0, vues: 0, signalements: 0 };
       s.annonces.unshift(a); return a.id;
     }

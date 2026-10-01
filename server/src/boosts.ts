@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import type Stripe from 'stripe';
 import type { EtatPersiste } from '../../src/types/state';
-import { BOOST_PLANS } from '../../src/lib/boost';
+import { forfaitsBoost, reglagesApplication } from '../../src/lib/reglages';
 import { Database } from './database';
 import { check, requireUser } from './security';
 import { uid } from './domain';
@@ -27,6 +27,7 @@ export function ownBoosts(db:Database,s:EtatPersiste,userId:string,listingId:str
   return db.sql.prepare('SELECT id,plan,days,amount,status,starts_at,ends_at FROM boosts WHERE listing_id=? AND user_id=? ORDER BY rowid DESC LIMIT 10').all(listingId,userId);
 }
 export async function boostCheckout(db:Database,s:EtatPersiste,userId:string,input:unknown,stripe:Stripe,apiUrl:string) {
+  check(reglagesApplication(s).boostsActifs,'Les nouveaux boosts sont momentanément suspendus.',409);
   const data=z.object({annonceId:z.string(),plan:z.enum(['3j','7j'])}).parse(input);
   const u=requireUser(s,userId);const a=s.annonces.find(a=>a.id===data.annonceId);
   check(a && a.vendeurId===u.id,'Seul le vendeur peut booster cet article.',403);
@@ -43,7 +44,7 @@ export async function boostCheckout(db:Database,s:EtatPersiste,userId:string,inp
     check(session.status==='expired','Paiement reçu, confirmation en cours. Actualise dans quelques secondes.',409);
     db.sql.prepare("UPDATE boosts SET status='canceled' WHERE id=?").run(pending.id);
   }
-  const plan=BOOST_PLANS.find(p=>p.id===data.plan)!;const id=uid();
+  const plan=forfaitsBoost(s).find(p=>p.id===data.plan)!;const id=uid();
   const result=await stripe.checkout.sessions.create({mode:'payment',payment_method_types:['card'],customer_email:u.email,client_reference_id:id,
     metadata:{boostId:id},line_items:[{quantity:1,price_data:{currency:'eur',unit_amount:plan.prixCents,product_data:{name:`Boost Liked · ${plan.jours} jours · ${a.titre}`}}}],
     payment_intent_data:{metadata:{boostId:id}},success_url:`${apiUrl}/boost-return?listing=${encodeURIComponent(a.id)}`,cancel_url:`${apiUrl}/boost-return?listing=${encodeURIComponent(a.id)}`,
@@ -89,4 +90,18 @@ export async function boostWebhook(db:Database,s:EtatPersiste,event:Stripe.Event
       email(db,s,b,'refunded');
     }return true;
   }return false;
+}
+
+export async function refundBoost(db:Database,s:EtatPersiste,id:string,stripe:Stripe) {
+  const b=db.sql.prepare('SELECT * FROM boosts WHERE id=?').get(id) as Boost|undefined;
+  check(b && b.payment_intent,'Boost payé introuvable.',404);
+  if(b.status==='refunded')return;
+  check(['active','expired','refund_pending'].includes(b.status),'Ce boost ne peut pas être remboursé.',409);
+  const r=await stripe.refunds.create({payment_intent:b.payment_intent,amount:b.amount,metadata:{boostId:b.id}},{idempotencyKey:`admin-boost-refund-${b.id}`});
+  check(r.payment_intent===b.payment_intent && r.amount===b.amount && r.currency==='eur','Remboursement incohérent.',409);
+  db.sql.prepare('UPDATE boosts SET status=? WHERE id=?').run(r.status==='succeeded'?'refunded':'refund_pending',b.id);
+  if(r.status==='succeeded') {
+    const a=s.annonces.find(a=>a.id===b.listing_id);if(a?.boost?.debut===b.starts_at) delete a.boost;
+    email(db,s,b,'refunded');
+  }
 }

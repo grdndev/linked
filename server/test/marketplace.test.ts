@@ -1,3 +1,4 @@
+import { REGLAGES_DEFAUT } from '../../src/lib/reglages';
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type Stripe from 'stripe';
@@ -156,6 +157,7 @@ test('un remboursement échoué reste bloqué sans faux e-mail de réussite',asy
 });
 test('livraison simulée : droits, ordre des étapes, gel du litige et versement',async()=>{
   process.env.SHIPPING_DRIVER='simulated';const f=fixture();f.setAmount(2520);
+  await f.db.run(s=>{s.reglages={...REGLAGES_DEFAUT,colissimoActif:true};});
   const {commandeId:id}=await f.db.run(s=>checkout(f.db,s,f.buyer.id,{annonceId:f.listingId,mode:'colissimo',adresse:{nomComplet:'Test Acheteur',ligne1:'12 rue de Test',codePostal:'97410',ville:'Saint-Pierre',telephone:'0692000000'}},f.stripe,'https://api.test'));
   await f.db.run(s=>webhook(f.db,s,f.paidEvent(id,{amount_total:2520}),f.stripe));
   assert.equal(f.db.read().commandes[0].codeRemise,undefined);

@@ -1,5 +1,6 @@
+import { reglagesApplication } from '@/lib/reglages';
 import { MODE_DEMO } from '@/services/config';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -19,11 +20,14 @@ export default function Paiement() {
   const moi = useMoi();
   const passerCommande = useLiked((e) => e.passerCommande);
   const insets = useSafeAreaInsets();
+  const config=useLiked(e=>e.reglages);
+  const reglages=reglagesApplication({reglages:config});
 
   const prixNegocieCents = prix ? Number(prix) : undefined;
   const prixCents = prixNegocieCents ?? annonce?.prixCents ?? 0;
 
   const [mode, setMode] = useState<ModeRemise>(modeInitial === 'colissimo' ? 'colissimo' : annonce?.accepteMainPropre ? 'main_propre' : 'colissimo');
+  useEffect(()=>{if(!reglages.colissimoActif && annonce?.accepteMainPropre) setMode('main_propre');},[reglages.colissimoActif,annonce?.accepteMainPropre]);
   const [nomComplet, setNomComplet] = useState(moi?.pseudo ?? '');
   const [ligne1, setLigne1] = useState(MODE_DEMO ? '12 rue de Test' : '');
   const [codePostal, setCodePostal] = useState(MODE_DEMO ? '97410' : '974');
@@ -47,6 +51,8 @@ export default function Paiement() {
 
   const payer = async () => {
     setErreur(undefined);
+    if(mode==='colissimo' && !reglages.colissimoActif) return setErreur('Colissimo n’est pas activé. Choisis la remise en main propre si elle est proposée.');
+    if(!reglages.achatsOuverts) return setErreur('Les achats sont momentanément suspendus.');
     if (mode === 'colissimo' && (!ligne1.trim() || !ville.trim() || telephone.replace(/\D/g, '').length < 9)) {
       return setErreur('Complète ton adresse de livraison et ton numéro.');
     }
@@ -82,6 +88,7 @@ export default function Paiement() {
             <Texte variante="prix">{euros(prixCents)}</Texte>
           </View>
 
+          {!reglages.colissimoActif && !annonce.accepteMainPropre && <Texte couleur={colors.danger}>Aucun mode de remise disponible : Colissimo est désactivé. Contacte le vendeur pour une remise en main propre.</Texte>}
           {/* Mode de remise */}
           <View style={{ gap: space.sm }}>
             <Texte variante="micro">COMMENT RÉCUPÉRER L'ARTICLE</Texte>
@@ -95,7 +102,7 @@ export default function Paiement() {
                 prix="Gratuit"
               />
             ) : null}
-            {annonce.accepteEnvoi ? (
+            {annonce.accepteEnvoi && reglages.colissimoActif ? (
               <OptionRemise
                 actif={mode === 'colissimo'}
                 onPress={() => setMode('colissimo')}

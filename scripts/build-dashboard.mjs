@@ -1,0 +1,12 @@
+import { build } from 'esbuild';
+import { mkdir,copyFile,writeFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+const api=process.env.EXPO_PUBLIC_API_URL;
+if(!api || !/^https?:\/\//.test(api))throw new Error('API URL requise pour le dashboard.');
+await mkdir('dist/dashboard',{recursive:true});
+await copyFile('node_modules/@expo-google-fonts/outfit/400Regular/Outfit_400Regular.ttf','dashboard/Outfit-Regular.ttf');
+await copyFile('node_modules/@expo-google-fonts/outfit/600SemiBold/Outfit_600SemiBold.ttf','dashboard/Outfit-Semibold.ttf');
+const result=await build({entryPoints:['dashboard/main.tsx'],bundle:true,format:'esm',minify:true,outdir:'dist/dashboard',entryNames:'dashboard-[hash]',assetNames:'assets/[name]-[hash]',loader:{'.ttf':'file'},define:{__API_URL__:JSON.stringify(api)},metafile:true,jsx:'automatic'});
+const js=Object.keys(result.metafile.outputs).find(x=>x.endsWith('.js'));const css=Object.keys(result.metafile.outputs).find(x=>x.endsWith('.css'));
+await writeFile('dist/dashboard/index.html',`<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Liked · Dashboard</title><link rel="stylesheet" href="/dashboard/${css.split('/').at(-1)}"></head><body><div id="root"></div><script type="module" src="/dashboard/${js.split('/').at(-1)}"></script></body></html>`);
+console.log('Dashboard web indépendant construit dans dist/dashboard.');

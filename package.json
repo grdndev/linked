@@ -14,7 +14,8 @@
     "test": "npm --prefix server test",
     "export": "expo export --platform all",
     "postexport": "node scripts/prepare-web.mjs",
-    "build:web": "expo export --platform web && node scripts/prepare-web.mjs"
+    "build:web": "expo export --platform web && node scripts/prepare-web.mjs && node scripts/build-dashboard.mjs",
+    "build:dashboard": "node scripts/build-dashboard.mjs"
   },
   "dependencies": {
     "@expo-google-fonts/outfit": "^0.4.1",
@@ -52,7 +53,9 @@
   "devDependencies": {
     "@babel/core": "^7.26.10",
     "@types/react": "~19.1.10",
+    "@types/react-dom": "19.1.9",
     "babel-preset-expo": "~54.0.12",
+    "esbuild": "0.28.2",
     "typescript": "~5.9.2"
   }
 }

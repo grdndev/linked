@@ -1,7 +1,7 @@
-import { Logotype } from '@/components/Logo';
-import { Apparition, MouvementProvider, useMouvementReduit } from '@/components/Mouvement';
+import { Ouverture } from '@/components/Ouverture';
+import { MouvementProvider, useMouvementReduit } from '@/components/Mouvement';
 import { Dialogues } from '@/components/Dialogues';
-import { ActivityIndicator, AppState, Text, View } from 'react-native';
+import { AppState, View } from 'react-native';
 import { MODE_DEMO } from '@/services/config';
 import { useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
@@ -34,8 +34,8 @@ function Application() {
   }, [amorcer]);
 
   useEffect(() => {
-    if (policesPretes && pret) SplashScreen.hideAsync().catch(() => {});
-  }, [policesPretes, pret]);
+    if (mouvementReduit !== null) SplashScreen.hideAsync().catch(() => {});
+  }, [mouvementReduit]);
 
   useEffect(() => {
     if (MODE_DEMO) return;
@@ -57,14 +57,14 @@ function Application() {
     return () => clearInterval(minuteur);
   }, [libererFondsSiEchu]);
 
-  if (!policesPretes || !pret) return <View style={{flex:1,alignItems:'center',justifyContent:'center',gap:16,backgroundColor:colors.sable}}><Apparition style={{ alignItems: 'center', gap: 12 }}><Logotype hauteur={48}/><Text style={{ color: colors.encre }}>Une seconde vie commence ici.</Text></Apparition><ActivityIndicator color={colors.corail}/><Text style={{color:colors.encre}}>Préparation de ton espace…</Text></View>;
+
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <StatusBar style="dark" />
-        <Apparition style={{ flex: 1 }}>
-        <Stack
+        <View style={{ flex: 1, backgroundColor: colors.encre }}>
+        {policesPretes && pret ? <Stack
           screenOptions={{
             headerShown: false,
             contentStyle: { backgroundColor: colors.sable },
@@ -73,9 +73,10 @@ function Application() {
         >
           <Stack.Screen name="(tabs)" />
           <Stack.Screen name="paiement/[id]" options={{ animation: mouvementReduit === false ? 'slide_from_bottom' : 'none' }} />
-        </Stack>
-        </Apparition>
+        </Stack> : null}
+        </View>
         <Dialogues />
+        <Ouverture pret={policesPretes && pret} />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

@@ -21,7 +21,7 @@ export function CoeurLiked({ taille = 24, couleur = colors.corail }: { taille?: 
  * extrémités arrondies, point du « i » remplacé par le cœur corail (§3.1).
  * Taille minimale d'affichage : 20 px de haut.
  */
-export function Logotype({ hauteur = 28, sombre = false }: { hauteur?: number; sombre?: boolean }) {
+export function Logotype({ hauteur = 28, sombre = false, sansCoeur = false }: { hauteur?: number; sombre?: boolean; sansCoeur?: boolean }) {
   const h = Math.max(20, hauteur);
   const largeur = h * 3.1;
   const trait = sombre ? colors.blanc : colors.encre;
@@ -35,11 +35,11 @@ export function Logotype({ hauteur = 28, sombre = false }: { hauteur?: number; s
           strokeLinecap="round"
         />
         <Path d="M26 18v14" stroke={trait} strokeWidth={5} strokeLinecap="round" />
-        <Path
+        {!sansCoeur && <Path
           d="M12 3.6c1.6-1.1 3.4-1.1 5 0 1.6 1.1 2.1 3 1.3 4.8-.9 2-4.6 4.4-4.6 4.4S10 10.4 9.1 8.4C8.3 6.6 8.8 4.7 10.4 3.6"
           fill={colors.corail}
           transform="translate(15.6 0)"
-        />
+        />}
         <Path
           d="M44 6v26"
           stroke={trait}

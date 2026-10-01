@@ -1,80 +1,43 @@
-# Manuel du back-office
+# Dashboard web Liked — recette
 
-Accès : se connecter avec un compte dont le rôle est `admin` (`admin@liked.re` en
-recette), puis Profil → **Back-office Liked**. Toute personne sans ce rôle voit un
-écran de refus.
+Le dashboard est une application React DOM autonome, séparée des écrans React Native. Il partage uniquement l’API et ses données avec l’application mobile.
 
-## Tableau de bord
+- Application : https://liked-beta-reunion.jayan-codialis.chatgpt.site/bienvenue
+- Administration : https://liked-beta-reunion.jayan-codialis.chatgpt.site/dashboard/
+- Connexion par code e-mail. Le serveur exige un compte actif avec le rôle administrateur pour chaque lecture et chaque action de gestion. Les membres n’ont aucun accès à ces données.
+- Le lien Profil → Dashboard web ouvre le navigateur ; aucun écran de gestion n’est embarqué dans l’application mobile.
 
-Six indicateurs, recalculés en direct :
+## Gestion disponible
 
-| Indicateur | Définition |
+| Rubrique | Actions |
 | --- | --- |
-| Inscrits | Nombre total de comptes |
-| Annonces en ligne | Annonces au statut `en_ligne` |
-| Transactions | Toutes commandes confondues |
-| Volume d'affaires | Somme des montants payés par les acheteurs |
-| **Revenus Liked** | Frais de protection + marge sur les frais de port |
-| Fonds séquestrés | Montants bloqués chez le prestataire, non encore versés |
+| Vue d’ensemble | Membres, annonces, commandes payées, volume net, revenus des ventes terminées, boosts, tâches en attente |
+| Annonces | Rechercher, filtrer, masquer, rétablir, archiver les annonces éligibles avec un motif |
+| Membres | Rechercher, avertir, suspendre, bannir, rétablir ; synchroniser le statut vendeur depuis Stripe |
+| Commandes | Suivre les statuts et demander un remboursement intégral avant expédition ; les remboursements en attente restent bloqués jusqu’à confirmation du prestataire |
+| Livraisons | Suivi des commandes et simulation des étapes préparation, expédition, livraison |
+| Litiges & support | Lire les pièces et échanges du litige, répondre, décider un remboursement intégral ou un versement vendeur motivé |
+| Signalements | Examiner les annonces et messages signalés, traiter le signalement ; les coordonnées sont masquées |
+| Boosts | Consulter les achats et rembourser un boost payé ; activation uniquement après paiement confirmé |
+| E-mails | Voir les 200 derniers envois ; remettre en file les envois échoués après huit tentatives |
+| Exports | CSV des commandes, récapitulatifs vendeurs et journal ; ce sont des exports de gestion, pas une déclaration fiscale officielle |
+| Réglages | Activer ou suspendre inscriptions, publications, achats, boosts ; régler les tarifs ; option Colissimo |
+| Journal | Historique des modifications de réglages, modération, sanctions et opérations administratives sensibles |
 
-## Modération et signalements
+Les montants et autorisations sont vérifiés côté serveur. Le statut vendeur est lu chez Stripe et ne peut pas être forcé manuellement. Les décisions financières nécessitent un motif et une confirmation. Les messages privés non signalés ne sont pas inclus dans le tableau de gestion.
 
-Chaque signalement affiche la cible, le motif, l'auteur et l'ancienneté.
+## Colissimo facultatif
 
-| Action | Effet |
-| --- | --- |
-| **Voir** | Ouvre l'annonce telle que la voient les membres |
-| **Masquer** | L'annonce sort du catalogue, le vendeur peut la corriger |
-| **Supprimer** | Retrait définitif |
-| **Classer sans suite** | Le signalement est traité sans sanction |
+L’option est **désactivée par défaut**. Les nouvelles annonces et les achats proposent la remise en main propre. Kylian peut aller dans Réglages, activer « Proposer Colissimo », puis enregistrer. La désactivation ne supprime pas le suivi des commandes déjà payées.
 
-Toute action est horodatée et écrite dans le journal d'administration avec le motif.
+Dans cette bêta, cette activation ouvre **uniquement un transport simulé** : aucune étiquette réelle ni aucun affranchissement. Le contrat, les identifiants du transporteur et la validation des étiquettes restent nécessaires avant les expéditions réelles. Stripe reste en mode test.
 
-## Litiges
+## Construction et vérification
 
-La liste montre les litiges ouverts, en examen et résolus, avec le montant séquestré.
+`npm ci`, `npm --prefix server ci`, puis `npm run typecheck`, `npm --prefix server run typecheck` et `npm test`.
 
-1. **Ouvrir la conversation** — accès à l'espace d'échange à trois (acheteur, vendeur,
-   support), y compris les photos jointes. Répondre depuis cet écran fait passer le
-   litige en « en examen ».
-2. **Trancher** — quatre issues possibles :
+`EXPO_PUBLIC_API_URL=… EXPO_PUBLIC_API_DRIVER=http npm run build:web` produit le mobile web dans `dist` et le dashboard indépendant dans `dist/dashboard`. `npm run build:dashboard` reconstruit uniquement ce dernier. Les secrets restent exclusivement dans l’environnement serveur.
 
-| Issue | Conséquence financière |
-| --- | --- |
-| Remboursement total | L'acheteur récupère l'intégralité de ce qu'il a payé |
-| Remboursement partiel | Montant saisi remboursé, le reste versé au vendeur |
-| Versement au vendeur | Litige non fondé, les fonds sont libérés normalement |
-| Retour article + remboursement | L'article repart chez le vendeur, l'acheteur est remboursé |
+Pour une recette locale sans prestataires ni données réelles : construire avec l’API `http://localhost:3002`, puis lancer depuis `server` la commande `node --import tsx scripts/preview-admin.ts`. Cette commande refuse un environnement contenant des clés Stripe ou Brevo ; elle utilise une base en mémoire et affiche le code de connexion fictif dans son terminal.
 
-La **motivation est obligatoire** (10 caractères minimum) : elle est envoyée aux deux
-parties et conservée dans le journal. Les décisions sont donc traçables et opposables.
-
-## Utilisateurs et KYC
-
-La fiche d'un membre donne l'identifiant, l'e-mail, le solde du portefeuille, les
-agrégats DAC7 de l'année et le NIF.
-
-**Statut KYC** — reflète l'état du dossier chez le prestataire de paiement. Le modifier
-ici est un rattrapage manuel : la source de vérité reste le webhook du PSP.
-
-**Sanctions** — Lever · Avertir · Suspendre · Bannir. Un compte banni ne peut plus se
-connecter ; un compte suspendu conserve ses données mais perd l'accès aux transactions.
-
-## Export DAC7
-
-La directive européenne DAC7 impose de déclarer chaque vendeur dépassant, sur l'année
-civile, **30 transactions ou 2 000 € encaissés**, et de lui adresser un récapitulatif
-individuel.
-
-- **Générer le fichier annuel** produit un CSV — identité complète, adresse, NIF,
-  montant annuel, nombre de transactions — que l'on partage vers l'outil comptable.
-  Le format XML officiel est produit par la chaîne back-office à partir des mêmes champs.
-- **Envoyer les récapitulatifs individuels** met en file l'envoi à chaque vendeur concerné.
-
-Les agrégats sont mis à jour automatiquement à chaque versement, dans `verserAuVendeur()`.
-
-## Journal d'administration
-
-Toute action d'administration — modération, sanction, changement de statut KYC,
-résolution de litige, export DAC7 — y est inscrite avec son auteur, sa cible, son motif
-et son horodatage. Le journal n'est pas modifiable depuis l'interface.
+La bêta actuelle utilise un serveur et un tunnel sur le Mac : ils doivent rester actifs. La mise en production nécessite un hébergement permanent, les prestataires réels et une recette sur appareils physiques.

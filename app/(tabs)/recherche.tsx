@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { reglagesApplication } from '@/lib/reglages';
+import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -22,6 +23,7 @@ const TRIS: { cle: NonNullable<FiltresRecherche['tri']>; libelle: string }[] = [
 export default function Recherche() {
   const { largeurColonne } = useGrille();
   const params = useLocalSearchParams<{ universe?: string; texte?: string }>();
+  const colissimoActif = useLiked((e) => reglagesApplication(e).colissimoActif);
   const annonces = useLiked((e) => e.annonces);
   const sauvegarderRecherche = useLiked((e) => e.sauvegarderRecherche);
   const connecte = useLiked((e) => Boolean(e.sessionId));
@@ -37,6 +39,8 @@ export default function Recherche() {
   const [prixMax, setPrixMax] = useState('');
   const [nomRecherche, setNomRecherche] = useState('');
   const [feuilleSauvegarde, setFeuilleSauvegarde] = useState(false);
+
+  useEffect(() => { if (!colissimoActif) setFiltres(f => f.mode === 'colissimo' ? {...f, mode: undefined} : f); }, [colissimoActif]);
 
   const resultats = useMemo(
     () => trier(annonces.filter((a) => correspond(a, filtres)), filtres.tri),
@@ -175,8 +179,8 @@ export default function Recherche() {
         <Bloc titre="Mode de remise">
           <Puce libelle="Main propre" icone="hand-left-outline" active={filtres.mode === 'main_propre'}
             onPress={() => setFiltres((f) => ({ ...f, mode: f.mode === 'main_propre' ? undefined : 'main_propre' }))} />
-          <Puce libelle="Colissimo" icone="cube-outline" active={filtres.mode === 'colissimo'}
-            onPress={() => setFiltres((f) => ({ ...f, mode: f.mode === 'colissimo' ? undefined : 'colissimo' }))} />
+          {colissimoActif && <Puce libelle="Colissimo" icone="cube-outline" active={filtres.mode === 'colissimo'}
+            onPress={() => setFiltres((f) => ({ ...f, mode: f.mode === 'colissimo' ? undefined : 'colissimo' }))} />}
         </Bloc>
 
         <View style={{ gap: space.sm }}>
